@@ -48,7 +48,12 @@ auth_router
    *       400:
    *         description: Please fill in all fields
    */
-  .post("/register", authMiddleware.checkRegister, authController.register)
+  .post(
+    "/register",
+    checkToken.checkAdminToken,
+    authMiddleware.checkRegister,
+    authController.register
+  )
   /**
    * @swagger
    * /auth/login:
