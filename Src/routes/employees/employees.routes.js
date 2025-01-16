@@ -18,7 +18,7 @@ employee_routes
    * /employee/create:
    *   post:
    *     summary: Create a new employee
-   *     tags: 
+   *     tags:
    *       - Employees
    *     description: Create a new employee
    *     requestBody:
@@ -69,7 +69,7 @@ employee_routes
   .post("/create", employeesMiddleware.checkCreate, employeesController.create)
   /**
    * @swagger
-   * /employee/all:
+   * /employee/get/all:
    *   get:
    *     summary: Get all employees
    *     tags: [Employees]
@@ -169,4 +169,41 @@ employee_routes
    *       500:
    *         description: Internal server error
    */
-  .delete("/delete/:id", idMiddleware.checkId, employeesController.delete);
+  .delete("/delete/:id", idMiddleware.checkId, employeesController.delete)
+  /**
+   * @swagger
+   * /employee/download:
+   *   get:
+   *     summary: Download employees
+   *     tags: [Employees]
+   *     description: get employees data in excel
+   *     responses:
+   *       200:
+   *         description: product fetched successfully
+   *       500:
+   *         description: Internal server error
+   */
+  .get("/download/data", employeesController.download)
+  /**
+   * @swagger
+   * /employee/search:
+   *   get:
+   *     summary: "Search employees by name"
+   *     tags: [Employees]
+   *     description: "This endpoint allows searching for products by name with a partial match."
+   *     parameters:
+   *       - name: "name"
+   *         positions: "Search products by name (supports partial match)"
+   *     responses:
+   *       200:
+   *         description: "Employees fetched successfully"
+   *         schema:
+   *           type: "array"
+   *           items:
+   *             $ref: "#/definitions/Employees"
+   *       400:
+   *         description: "Name parameter is required"
+   *       500:
+   *         description: "Internal server error"
+   */
+  .get("/data/search", employeesController.search);

@@ -56,6 +56,32 @@ product_routes
   )
   /**
    * @swagger
+   * /products/search:
+   *   get:
+   *     summary: "Search products by name"
+   *     tags: [Products]
+   *     description: "This endpoint allows searching for products by name with a partial match."
+   *     parameters:
+   *       - name: "name"
+   *         in: "query"
+   *         description: "Search products by name (supports partial match)"
+   *         required: true
+   *         type: "string"
+   *     responses:
+   *       200:
+   *         description: "Products fetched successfully"
+   *         schema:
+   *           type: "array"
+   *           items:
+   *             $ref: "#/definitions/Product"
+   *       400:
+   *         description: "Name parameter is required"
+   *       500:
+   *         description: "Internal server error"
+   */
+  .get("/search", productsController.searchProduct)
+  /**
+   * @swagger
    * /products/all:
    *   get:
    *     summary: Get all products
@@ -174,4 +200,18 @@ product_routes
    *       500:
    *         description: Internal server error
    */
-  .delete("/delete/:id", idMiddleware.checkId, productsController.delete);
+  .delete("/delete/:id", idMiddleware.checkId, productsController.delete)
+  /**
+   * @swagger
+   * /products/download:
+   *   get:
+   *     summary: Download product
+   *     tags: [Products]
+   *     description: get products data in excel
+   *     responses:
+   *       200:
+   *         description: product fetched successfully
+   *       500:
+   *         description: Internal server error
+   */
+  .get("/download", productsController.download);

@@ -8,7 +8,7 @@ export default {
       if (!name || !lastName || !password || !phoneNumber) {
         return res.status(400).json({ message: "Please fill in all fields" });
       }
-        
+
       if (
         typeof password !== "string" ||
         password.length < 8 ||
@@ -19,12 +19,8 @@ export default {
 
       let phoneNumberRegex = /^[0-9]+$/;
 
-      if (
-        !phoneNumberRegex.test(phoneNumber)
-      ) {
-        return res
-          .status(400)
-          .json({ message: "Invalide phone number" });
+      if (!phoneNumberRegex.test(phoneNumber)) {
+        return res.status(400).json({ message: "Invalide phone number" });
       }
 
       let nameRegex = /^[a-zA-Z]+$/;
@@ -72,21 +68,13 @@ export default {
         return res.status(400).json({ message: "Please fill in all fields" });
       }
 
-      if (
-        typeof phoneNumber !== "string" ||
-        phoneNumber.length < 10 ||
-        phoneNumber.length > 15
-      ) {
+      if (typeof phoneNumber !== "string") {
         return res
           .status(400)
           .json({ message: "Phone number must be at least 10 characters" });
       }
 
-      if (
-        typeof password !== "string" ||
-        password.length < 8 ||
-        password.length > 20
-      ) {
+      if (typeof password !== "string") {
         return res
           .status(400)
           .json({ message: "Password must be at least 8 characters" });

@@ -1,3 +1,5 @@
+import ExcelJS from "exceljs";
+import { Op } from "sequelize";
 import moment from "moment-timezone";
 import { Admins, Products } from "../../models/realations.js";
 
@@ -5,11 +7,19 @@ export default {
   async create(req, res) {
     try {
       let { name, totalAmount, price } = req.body;
+
+      if (!req.file) {
+        return res
+          .status(400)
+          .json({ message: "productImage must not be empty", status: 400 });
+      }
+
       let createdData = await Products.create({
         name,
         totalAmount,
         price,
-        productImage: `/${req.file.path}`,
+        remainingAmount: totalAmount,
+        productImage: `/${req.file.filename}`,
         adminId: req.admin.id,
       });
 
@@ -19,7 +29,12 @@ export default {
         status: 201,
       });
     } catch (error) {
-      console.log(error);
+      res.status(500)
+      .json({
+        message: "Internal server error",
+        error: error.message,
+        status: 500,
+      });
     }
   },
 
@@ -58,125 +73,175 @@ export default {
         status: 200,
       });
     } catch (error) {
-      console.log(error);
+      res.status(500)
+      .json({
+        message: "Internal server error",
+        error: error.message,
+        status: 500,
+      });
     }
   },
 
   async findById(req, res) {
     try {
       let { id } = req.params;
+  
       let data = await Products.findByPk(id, {
         include: [
           {
             model: Admins,
-            as: "admin", // 'admin' bo'lishi kerak, bu siz belgilagan alias
-            attributes: ["id", "name", "lastName", "phoneNumber"], // adminni faqat kerakli ma'lumotlari
+            attributes: ["id", "name", "lastName", "phoneNumber"],
           },
         ],
       });
-
+  
       if (!data || data.deleted) {
         return res.status(404).json({
           message: "Product not found",
           status: 404,
         });
       }
-
+  
+      // Unikal adminId larni olish
+      const adminIds = [...new Set(data.actionsTaken.map((action) => action.adminId))];
+  
+      // Barcha adminlarni bir so'rovda olish
+      const admins = await Admins.findAll({
+        where: { id: adminIds },
+        attributes: ["id", "name", "lastName", "phoneNumber"],
+      });
+  
+      // Adminlarni obyekt shaklida xaritalash
+      const adminMap = admins.reduce((map, admin) => {
+        map[admin.id] = admin;
+        return map;
+      }, {});
+  
+      // actionsTaken ma'lumotlariga admin ma'lumotlarini qo'shish
+      const actionsTakenWithAdmins = data.actionsTaken.map((action) => ({
+        ...action,
+        adminInfo: adminMap[action.adminId] || null,
+      }));
+  
+      data = {
+        ...data.toJSON(),
+        actionsTaken: actionsTakenWithAdmins,
+      };
+  
       res.status(200).json({
         data,
         message: "Product fetched successfully",
         status: 200,
       });
     } catch (error) {
-      console.log(error);
-    }
+      res.status(500)
+      .json({
+        message: "Internal server error",
+        error: error.message,
+        status: 500,
+      });
+    } 
   },
 
   async sell(req, res) {
     try {
-      const { id } = req.params;
-      const { amount } = req.body;
-
+      const { id } = req.params; // Mahsulot ID
+      let { amount } = req.body; // Sotiladigan miqdor
+  
+      // `amount` ni raqamga o'zgartirish
+      amount = parseInt(amount, 10);
+  
+      // Agar `amount` raqamga o'zgartirilsa va noto'g'ri bo'lsa, xatolik yuborish
+      if (isNaN(amount)) {
+        return res.status(400).json({
+          message: "Noto'g'ri miqdor kiritildi",
+          status: 400,
+        });
+      }
+  
+      // Mahsulotni olish va adminni biriktirish
       const product = await Products.findByPk(id, {
         include: [
           {
             model: Admins,
-            as: "admin",
-            attributes: ["id", "name"],
+            attributes: ["id", "name"], // Faqat kerakli maydonlarni olish
           },
         ],
       });
-
+  
+      // Mahsulot mavjudligi va o‘chirilganligini tekshirish
       if (!product || product.deleted) {
         return res.status(404).json({
-          message: "Product not found",
+          message: "Mahsulot topilmadi yoki o‘chirilgan",
           status: 404,
         });
       }
-
-      const { totalAmount, remainingAmount } = product;
-
-      // Stok etarlimi?
-      if (remainingAmount + totalAmount < amount) {
+  
+      // Yetarli miqdorda mahsulot borligini tekshirish
+      if (product.remainingAmount < amount) {
         return res.status(400).json({
-          message: "Not enough stock to complete the sale",
+          message: "Yetarli miqdorda mahsulot mavjud emas",
           status: 400,
           requestedAmount: amount,
-          availableAmount: remainingAmount + totalAmount,
+          availableAmount: product.remainingAmount,
         });
       }
-
-      // Sotuvni hisoblash
-      let newRemainingAmount = remainingAmount;
-      let newTotalAmount = totalAmount;
-
-      if (remainingAmount >= amount) {
-        newRemainingAmount -= amount;
-      } else {
-        const deficit = amount - remainingAmount;
-        newRemainingAmount = 0;
-        newTotalAmount -= deficit;
-      }
-
-      product.remainingAmount = newRemainingAmount;
-      product.totalAmount = newTotalAmount;
-      product.quantitySold += amount;
-
-      // Harakatni loglash
+  
+      // Sotish jarayonida mahsulot miqdorini yangilash
+      const updatedRemainingAmount = product.remainingAmount - amount;
+      const updatedQuantitySold = product.quantitySold + amount;
+  
+      // Yangi harakatni yaratish
       const newAction = {
-        action: "sold",
-        numberOfSales: amount,
-        adminId: req.admin.id, // Admin ID'sini olamiz
-        timestamp: moment().tz("Asia/Tashkent").format(),
+        action: "sold", // Harakat turi
+        numberOfSales: amount, // Sotilgan miqdor
+        adminId: req.admin.id, // Admin ID
+        timestamp: moment().tz("Asia/Tashkent").format(), // Vaqt
       };
-
-      const actionsTaken = product.actionsTaken || [];
-      actionsTaken.push(newAction);
-      product.actionsTaken = actionsTaken;
-
-      // Saqlash
-      await product.save();
-
+  
+      // `actionsTaken` massivini yangilash
+      const updatedActions = [...(product.actionsTaken || []), newAction];
+  
+      // Mahsulotni yangilash
+      await product.update(
+        {
+          remainingAmount: updatedRemainingAmount, // Qolgan miqdor
+          quantitySold: updatedQuantitySold, // Sotilgan miqdor
+          actionsTaken: updatedActions, // Yangilangan actions
+        },
+        {
+          fields: ["remainingAmount", "quantitySold", "revenue","actionsTaken"], // Faqat kerakli maydonlarni yangilash
+        }
+      );
+  
+      // Javobni qaytarish
       return res.status(200).json({
-        message: "Sale completed successfully",
+        message: "Savdo muvaffaqiyatli amalga oshirildi",
         status: 200,
-        updatedProduct: product,
+        updatedProduct: {
+          id: product.id,
+          name: product.name,
+          remainingAmount: updatedRemainingAmount,
+          quantitySold: updatedQuantitySold,
+          actionsTaken: updatedActions,
+        },
       });
     } catch (error) {
-      console.error(error);
-      return res.status(500).json({
-        message: "An error occurred while processing the sale",
-        status: 500,
+      res.status(500)
+      .json({
+        message: "Internal server error",
         error: error.message,
+        status: 500,
       });
     }
   },
 
   async delete(req, res) {
     try {
-      let { id } = req.params;
-      let product = await Products.findByPk(id);
+      const { id } = req.params;
+      const product = await Products.findByPk(id);
 
+      // Mahsulot mavjudligini va o'chirilganligini tekshirish
       if (!product || product.deleted) {
         return res.status(404).json({
           message: "Product not found",
@@ -184,55 +249,58 @@ export default {
         });
       }
 
-      product.deleted = true;
-
+      // Yangi actionni yaratish
       const newAction = {
         action: "deleted",
-        adminId: req.admin.id, // Assuming req.user contains the logged-in admin's ID
-        timestamp: moment().tz("Asia/Tashkent").format(),
+        adminId: req.admin.id, // Admin ID (req.admin'dan kelgan)
+        timestamp: moment().tz("Asia/Tashkent").format(), // Vaqtni Tashkent vaqt zonasida olish
       };
 
-      actionsTaken.push(newAction);
-      product.actionsTaken = actionsTaken;
+      // actionsTaken massivini yangilash
+      const updatedActions = [...(product.actionsTaken || []), newAction];
 
-      await product.save();
+      // Mahsulotni yangilash
+      await product.update(
+        {
+          deleted: true, // Deleted flag'ini o'zgartirish
+          actionsTaken: updatedActions, // actionsTakenni yangilash
+        },
+        {
+          fields: ["deleted", "actionsTaken"], // Faqat kerakli maydonlarni yangilash
+        }
+      );
 
       res.status(200).json({
         message: "Product deleted successfully",
         status: 200,
       });
     } catch (error) {
-      console.log(error);
+      res.status(500)
+      .json({
+        message: "Internal server error",
+        error: error.message,
+        status: 500,
+      });
     }
   },
 
   async searchProduct(req, res) {
     try {
-      const allowedFields = [
-        "name",
-        "quantitySold",
-        "deleted",
-        "totalAmount",
-        "remainingAmount",
-      ];
-      const whereClause = {};
+      const { name } = req.query;
 
-      // Dinamik `whereClause` qurish
-      Object.entries(req.query).forEach(([key, value]) => {
-        if (allowedFields.includes(key)) {
-          if (key === "name") {
-            whereClause[key] = { [Op.like]: `%${value}%` }; // Qisman moslik
-          } else if (key === "deleted") {
-            whereClause[key] = value === "true"; // Boolean moslik
-          } else {
-            whereClause[key] = value; // Aniq moslik
-          }
-        }
-      });
+      if (!name) {
+        return res.status(400).json({
+          status: 400,
+          message: "Name parameter is required",
+        });
+      }
 
-      // Mahsulotlarni qidirish
       const products = await Products.findAll({
-        where: whereClause,
+        where: {
+          name: {
+            [Op.like]: `%${name}%`, // Qisman moslik (LIKE)
+          },
+        },
       });
 
       res.status(200).json({
@@ -241,60 +309,118 @@ export default {
         data: products,
       });
     } catch (error) {
-      console.error(error);
-      res.status(500).json({
-        status: 500,
-        message: "An error occurred while fetching products",
+      res.status(500)
+      .json({
+        message: "Internal server error",
         error: error.message,
+        status: 500,
       });
     }
   },
 
   async update(req, res) {
     try {
-      const { id } = req.params; // URL parametrlari orqali id ni olish
-      const { name, amount } = req.body; // Body orqali name va amountni olish
-
-      // Mahsulotni topamiz
+      const { id } = req.params;
+      const { name, amount } = req.body;
+  
       const product = await Products.findByPk(id);
       if (!product) {
         return res.status(404).json({ message: "Mahsulot topilmadi!" });
       }
-
-      // Dynamic update: Agar name bo'lsa, uni yangilaymiz
+  
       if (name) {
-        product.name = name;
+        product.name = name.trim();
       }
-
-      // Agar amount bo'lsa, totalAmount va remainingAmountga qo'shamiz
+  
+      let updatedActions = [...(product.actionsTaken || [])];
+  
       if (amount) {
-        product.totalAmount += amount;
-        product.remainingAmount += amount;
+        const parsedAmount = Number(amount);
+        if (isNaN(parsedAmount)) {
+          return res.status(400).json({ message: "Amount noto'g'ri formatda!" });
+        }
+        product.totalAmount += parsedAmount;
+        product.remainingAmount += parsedAmount;
+  
+        // Yangi actionni qo'shish
+        updatedActions.push({
+          action: "update amount or name",
+          adminId: req.admin.id,
+          timestamp: moment().tz("Asia/Tashkent").format(),
+        });
       }
-
-      // Narxlar va daromadlarni qayta hisoblash
-      product.totalPrice = product.totalAmount * product.price;
-      product.revenue = product.quantitySold * product.price;
-
-      const newAction = {
-        action: "update product name or amount",
-        adminId: req.admin.id, // Assuming req.user contains the logged-in admin's ID
-        timestamp: moment().tz("Asia/Tashkent").format(),
-      };
-
-      actionsTaken.push(newAction);
-      product.actionsTaken = actionsTaken;
-
-      // Mahsulotni yangilaymiz
-      await product.save();
-
+  
+      // Mahsulotni yangilash
+      await product.update(
+        {
+          name: product.name,
+          totalAmount: product.totalAmount,
+          remainingAmount: product.remainingAmount,
+          actionsTaken: updatedActions,
+        },
+        {
+          fields: ["name", "totalAmount", "remainingAmount", "actionsTaken"],
+        }
+      );
+  
       res.status(200).json({
         message: "Mahsulot muvaffaqiyatli yangilandi!",
         product,
       });
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: "Xatolik yuz berdi!" });
+      res.status(500)
+      .json({
+        message: "Internal server error",
+        error: error.message,
+        status: 500,
+      });
+    }
+  },
+
+  async download(req, res) {
+    try {
+      const products = await Products.findAll();
+
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet("Mahsulotlar");
+
+      worksheet.columns = [
+        { header: "ID", key: "id", width: 10 },
+        { header: "Nomi", key: "name", width: 30 },
+        { header: "Mahsulot rasmi", key: "productImage", width: 50 }, // URL bo'lgani uchun kengligini oshirdik
+        { header: "Sotilgan miqdor", key: "quantitySold", width: 15 },
+        { header: "Qolgan miqdor", key: "remainingAmount", width: 15 },
+        { header: "Jami miqdor", key: "totalAmount", width: 15 },
+        { header: "Narxi", key: "price", width: 10 },
+        { header: "Umumiy narx", key: "totalPrice", width: 15 },
+        { header: "Daromad", key: "revenue", width: 15 },
+      ];
+
+      // Har bir mahsulotni Excelga qo'shishdan oldin productImage ni to'liq URL qilish
+      products.forEach((product) => {
+        const productData = product.toJSON();
+        productData.productImage = `http://localhost:1218${productData.productImage}`;
+        worksheet.addRow(productData);
+      });
+
+      res.setHeader(
+        "Content-Type",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      );
+      res.setHeader(
+        "Content-Disposition",
+        "attachment; filename=products.xlsx"
+      );
+
+      await workbook.xlsx.write(res);
+      res.end();
+    } catch (error) {
+      res.status(500)
+      .json({
+        message: "Internal server error",
+        error: error.message,
+        status: 500,
+      });
     }
   },
 };

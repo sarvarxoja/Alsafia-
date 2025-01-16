@@ -1,4 +1,12 @@
-import { Admins } from "../../models/realations.js";
+import moment from "moment-timezone";
+import { Users } from "../../models/realations.js";
+
+function isValidDate(date) {
+  const parsedDate = Date.parse(date);
+  const today = new Date();
+  // Check if the date is valid and not in the future
+  return !isNaN(parsedDate) && parsedDate <= today.getTime();
+}
 
 export default {
   async checkCreate(req, res, next) {
@@ -29,14 +37,7 @@ export default {
         return res.status(400).json({ message: "All fields are required!!" });
       }
 
-      let contentRegex = /^[a-zA-Z]+$/;
-
-      if (
-        typeof name !== "string" ||
-        name.length < 3 ||
-        name.length > 50 ||
-        !contentRegex.test(name)
-      ) {
+      if (typeof name !== "string" || name.length < 3 || name.length > 50) {
         return res
           .status(400)
           .json({ message: "Name must be at least 3 characters" });
@@ -45,8 +46,7 @@ export default {
       if (
         typeof lastName !== "string" ||
         lastName.length < 3 ||
-        lastName.length > 60 ||
-        !contentRegex.test(lastName)
+        lastName.length > 60
       ) {
         return res
           .status(400)
@@ -63,20 +63,17 @@ export default {
           .json({ message: "Position must be at least 3 characters" });
       }
 
-      let phoneNumberRegex = /^[0-9]+$" "/;
-
       if (
         typeof phoneNumber !== "string" ||
         phoneNumber.length < 10 ||
-        phoneNumber.length > 15 ||
-        !phoneNumberRegex.test(phoneNumber)
+        phoneNumber.length > 15
       ) {
         return res
           .status(400)
           .json({ message: "Phone number must be at least 10 characters" });
       }
 
-      let phoneNumberCheck = await Admins.findOne({
+      let phoneNumberCheck = await Users.findOne({
         where: { phoneNumber: phoneNumber },
       });
 
@@ -84,19 +81,16 @@ export default {
         return res.status(400).json({ message: "Phone number already exists" });
       }
 
-      if (
-        typeof dateOfEmployment !== "string" ||
-        dateOfEmployment.length < 10
-      ) {
-        return res.status(400).json({
-          message: "Date of employment must be at least 10 characters",
+      if (!moment(dateOfEmployment, "YYYY-MM-DD", true).isValid()) {
+        return res.status(400).send({
+          message: "Invalid dateOfEmployment format. Use YYYY-MM-DD.",
         });
       }
 
-      if (typeof dateOfBirth !== "string" || dateOfBirth.length < 10) {
+      if (!moment(dateOfBirth, "YYYY-MM-DD", true).isValid()) {
         return res
           .status(400)
-          .json({ message: "Date of birth must be at least 10 characters" });
+          .send({ message: "Invalid dateOfBirth format. Use YYYY-MM-DD." });
       }
 
       if (
@@ -111,8 +105,7 @@ export default {
 
       if (
         typeof salaryType !== "string" ||
-        salaryType !== "stable" ||
-        salaryType !== "percentage"
+        (salaryType !== "stable" && salaryType !== "percentage")
       ) {
         return res
           .status(400)
@@ -166,14 +159,7 @@ export default {
       }
 
       if (name) {
-        let contentRegex = /^[a-zA-Z]+$/;
-
-        if (
-          typeof name !== "string" ||
-          name.length < 3 ||
-          name.length > 50 ||
-          !contentRegex.test(name)
-        ) {
+        if (typeof name !== "string" || name.length < 3 || name.length > 50) {
           return res
             .status(400)
             .json({ message: "Name must be at least 3 characters" });
@@ -181,13 +167,10 @@ export default {
       }
 
       if (lastName) {
-        let contentRegex = /^[a-zA-Z]+$/;
-
         if (
           typeof lastName !== "string" ||
           lastName.length < 3 ||
-          lastName.length > 60 ||
-          !contentRegex.test(lastName)
+          lastName.length > 60
         ) {
           return res
             .status(400)
@@ -208,13 +191,10 @@ export default {
       }
 
       if (phoneNumber) {
-        let phoneNumberRegex = /^[0-9]+$" "/;
-
         if (
           typeof phoneNumber !== "string" ||
           phoneNumber.length < 10 ||
-          phoneNumber.length > 15 ||
-          !phoneNumberRegex.test(phoneNumber)
+          phoneNumber.length > 15
         ) {
           return res
             .status(400)
@@ -223,21 +203,18 @@ export default {
       }
 
       if (dateOfEmployment) {
-        if (
-          typeof dateOfEmployment !== "string" ||
-          dateOfEmployment.length < 10
-        ) {
-          return res.status(400).json({
-            message: "Date of employment must be at least 10 characters",
+        if (!moment(dateOfEmployment, "YYYY-MM-DD", true).isValid()) {
+          return res.status(400).send({
+            message: "Invalid dateOfEmployment format. Use YYYY-MM-DD.",
           });
         }
       }
 
       if (dateOfBirth) {
-        if (typeof dateOfBirth !== "string" || dateOfBirth.length < 10) {
+        if (dateOfBirth && !moment(dateOfBirth, "YYYY-MM-DD", true).isValid()) {
           return res
             .status(400)
-            .json({ message: "Date of birth must be at least 10 characters" });
+            .send({ message: "Invalid dateOfBirth format. Use YYYY-MM-DD." });
         }
       }
 
@@ -256,8 +233,7 @@ export default {
       if (salaryType) {
         if (
           typeof salaryType !== "string" ||
-          salaryType !== "stable" ||
-          salaryType !== "percentage"
+          (salaryType !== "stable" && salaryType !== "percentage")
         ) {
           return res
             .status(400)

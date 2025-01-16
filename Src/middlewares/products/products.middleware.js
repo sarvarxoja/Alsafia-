@@ -13,15 +13,15 @@ export default {
           .json({ message: "Name must be at least 2 characters" });
       }
 
-      if (typeof totalAmount !== "number" || totalAmount < 1) {
-        return res
-          .status(400)
-          .json({ message: "Total amount must be at least 1" });
-      }
+      // if (typeof totalAmount !== "number" || totalAmount < 1) {
+      //   return res
+      //     .status(400)
+      //     .json({ message: "Total amount must be at least 1" });
+      // }
 
-      if (typeof price !== "number" || price < 1) {
-        return res.status(400).json({ message: "Price must be at least 1" });
-      }
+      // if (typeof price !== "number" || price < 1) {
+      //   return res.status(400).json({ message: "Price must be at least 1" });
+      // }
 
       return next();
     } catch (error) {
@@ -37,7 +37,7 @@ export default {
         return res.status(400).json({ message: "Please fill in all fields" });
       }
 
-      if (typeof amount !== "number" || amount < 1) {
+      if (amount < 1) {
         return res.status(400).json({ message: "Amount must be at least 1" });
       }
 
@@ -64,7 +64,7 @@ export default {
           .json({ message: "Name must be at least 2 characters" });
       }
 
-      if (amount && (typeof amount !== "number" || amount < 1)) {
+      if (amount && (amount < 1)) {
         return res.status(400).json({ message: "Amount must be at least 1" });
       }
 

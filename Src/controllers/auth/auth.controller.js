@@ -23,7 +23,11 @@ export default {
         status: 201,
       });
     } catch (error) {
-      console.log(error);
+      res.status(500).json({
+        message: "Internal server error",
+        error: error.message,
+        status: 500,
+      });
     }
   },
 
@@ -40,33 +44,32 @@ export default {
         if (check_password) {
           await data.update({ lastLogin: new Date() });
 
-          return res
-            .status(200)
-            .cookie(
-              "refreshToken",
-              await jwtRefreshSign(data.id, data.tokenVersion),
-              {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === "production",
-                sameSite: "strict",
-                maxAge: 30 * 24 * 60 * 60 * 1000, // 7 kun
-              }
-            )
-            .cookie("accessToken", await jwtSign(data.id, data.tokenVersion), {
-              httpOnly: true,
-              secure: process.env.NODE_ENV === "production",
-              sameSite: "strict",
-              maxAge: 15 * 60 * 1000, // 15 daqiqa
-            })
-            .json({
-              name: data.name,
-              lastName: data.lastName,
-              phoneNumber: data.phoneNumber,
-              status: 200,
-            });
+          const refreshToken = await jwtRefreshSign(data.id, data.tokenVersion);
+          const accessToken = await jwtSign(data.id, data.tokenVersion);
+
+          res.cookie("refreshToken", refreshToken, {
+            httpOnly: true,
+            secure: false,
+            sameSite: "lax",
+            maxAge: 30 * 24 * 60 * 60 * 1000, // 7 kun
+          });
+
+          res.cookie("accessToken", accessToken, {
+            httpOnly: true,
+            secure: false, // HTTPS bo‘lmagan muhitda false
+            sameSite: "lax",
+            maxAge: 15 * 60 * 1000, // 15 daqiqa
+          });
+
+          return res.status(200).json({
+            name: data.name,
+            lastName: data.lastName,
+            phoneNumber: data.phoneNumber,
+            status: 200,
+          });
         } else {
           return res.status(401).json({
-            msg: "wrong email or password",
+            msg: "wrong phone number or password",
             status: 401,
           });
         }
@@ -77,7 +80,11 @@ export default {
         });
       }
     } catch (error) {
-      console.log(error);
+      res.status(500).json({
+        message: "Internal server error",
+        error: error.message,
+        status: 500,
+      });
     }
   },
 
@@ -128,6 +135,11 @@ export default {
           status: 401,
         });
       }
+      res.status(500).json({
+        message: "Internal server error",
+        error: error.message,
+        status: 500,
+      });
     }
   },
 
@@ -140,7 +152,27 @@ export default {
         status: 200,
       });
     } catch (error) {
-      console.log(error);
+      res.status(500)
+      .json({
+        message: "Internal server error",
+        error: error.message,
+        status: 500,
+      });
+    }
+  },
+
+  async checkAuth(req, res) {
+    try {
+      res
+        .status(200)
+        .json({ message: "You have access to this site!", status: 200 });
+    } catch (error) {
+      res.status(500)
+      .json({
+        message: "Internal server error",
+        error: error.message,
+        status: 500,
+      });
     }
   },
 };

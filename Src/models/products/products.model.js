@@ -5,6 +5,12 @@ export class Products extends Model {}
 
 Products.init(
   {
+    id: {
+      type: DataTypes.UUID,
+      defaultValue: DataTypes.UUIDV4,
+      primaryKey: true,
+    },
+
     name: {
       type: DataTypes.STRING(50),
       allowNull: false,
@@ -42,7 +48,7 @@ Products.init(
     },
 
     actionsTaken: {
-      type: DataTypes.JSON,
+      type: DataTypes.JSONB,
       allowNull: true,
       defaultValue: [],
     },
@@ -60,7 +66,7 @@ Products.init(
 
     adminId: {
       type: DataTypes.UUID,
-      allowNull: false,       
+      allowNull: false,
       references: {
         model: "Admins",
         key: "id",
@@ -73,11 +79,13 @@ Products.init(
     hooks: {
       beforeCreate: (product, options) => {
         product.totalPrice = product.totalAmount * product.price;
-        product.revenue = product.quantitySold * product.price;
+        product.revenue = product.quantitySold * product.price; 
       },
       beforeUpdate: (product, options) => {
+        if (product.changed('quantitySold')) {
+          product.revenue = product.quantitySold * product.price;
+        }
         product.totalPrice = product.totalAmount * product.price;
-        product.revenue = product.quantitySold * product.price;
       },
     },
   }

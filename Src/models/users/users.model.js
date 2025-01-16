@@ -27,7 +27,7 @@ Users.init(
     },
 
     dateOfEmployment: {
-      type: DataTypes.DATE,
+      type: DataTypes.DATE, // `String` ni `DATE`ga o'zgartirdim
       allowNull: false,
     },
 
@@ -41,6 +41,7 @@ Users.init(
 
     dateOfBirth: {
       type: DataTypes.DATE,
+      allowNull: false,
     },
 
     parentName: {

@@ -3,7 +3,7 @@ import multer from "multer";
 // Rasm turini va hajmini tekshirish
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, "uploads/"); // Faylni saqlash joyi
+    cb(null, "uploads"); // Faylni saqlash joyi
   },
   filename: (req, file, cb) => {
     cb(null, Date.now() + "-" + file.originalname); // Fayl nomini o'zgartirish

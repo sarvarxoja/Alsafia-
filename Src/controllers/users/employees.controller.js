@@ -1,3 +1,5 @@
+import ExcelJS from "exceljs";
+import { Op } from "sequelize";
 import { Users } from "../../models/realations.js";
 
 export default {
@@ -33,7 +35,12 @@ export default {
         status: 201,
       });
     } catch (error) {
-      console.log(error);
+      res.status(500)
+      .json({
+        message: "Internal server error",
+        error: error.message,
+        status: 500,
+      });
     }
   },
 
@@ -61,7 +68,12 @@ export default {
         },
       });
     } catch (error) {
-      console.error(error);
+      res.status(500)
+      .json({
+        message: "Internal server error",
+        error: error.message,
+        status: 500,
+      });
     }
   },
 
@@ -76,7 +88,12 @@ export default {
 
       res.status(200).json({ employee, status: 200 });
     } catch (error) {
-      console.log(error);
+      res.status(500)
+      .json({
+        message: "Internal server error",
+        error: error.message,
+        status: 500,
+      });
     }
   },
 
@@ -111,8 +128,12 @@ export default {
         .status(200)
         .json({ message: "User updated successfully", data: user });
     } catch (error) {
-      console.error("Error updating user:", error);
-      res.status(500).json({ error: "Internal Server Error" });
+      res.status(500)
+      .json({
+        message: "Internal server error",
+        error: error.message,
+        status: 500,
+      });
     }
   },
 
@@ -129,7 +150,105 @@ export default {
 
       res.status(200).json({ message: "User deleted successfully" });
     } catch (error) {
-      console.log(error);
+      res.status(500)
+      .json({
+        message: "Internal server error",
+        error: error.message,
+        status: 500,
+      });
+    }
+  },
+
+  async download(req, res) {
+    try {
+      // Foydalanuvchilarni bazadan olish
+      const users = await Users.findAll();
+
+      // Excel Workbook yaratish
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet("Foydalanuvchilar");
+
+      // Sarlavhalarni belgilash
+      worksheet.columns = [
+        { header: "ID", key: "id", width: 10 },
+        { header: "Ism", key: "name", width: 15 },
+        { header: "Familiya", key: "lastName", width: 20 },
+        { header: "Lavozim", key: "position", width: 20 },
+        {
+          header: "Ishga qabul qilingan sana",
+          key: "dateOfEmployment",
+          width: 20,
+        },
+        { header: "Telefon raqami", key: "phoneNumber", width: 15 },
+        { header: "Tug‘ilgan sana", key: "dateOfBirth", width: 15 },
+        { header: "Ota-ona ismi", key: "parentName", width: 20 },
+        { header: "Ish haqi turi", key: "salaryType", width: 15 },
+        { header: "Izoh", key: "comment", width: 30 },
+      ];
+
+      // Foydalanuvchilar ma'lumotlarini qo'shish
+      users.forEach((user) => {
+        worksheet.addRow(user.toJSON());
+      });
+
+      // Excel faylni javobga yozish
+      res.setHeader(
+        "Content-Type",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      );
+      res.setHeader("Content-Disposition", "attachment; filename=users.xlsx");
+
+      // Excel faylini yozish va yuborish
+      await workbook.xlsx.write(res);
+      res.end(); // Bu yerda javobni tugatish
+    } catch (error) {
+      if (!res.headersSent) {
+        res
+          .status(500)
+          .send("Maʼlumotlarni eksport qilishda xatolik yuz berdi.");
+      }
+    }
+  },
+
+  async search(req, res) {
+    const { query, type } = req.query; 
+
+    if (!query || !type) {
+      return res.status(400).json({ message: 'Both query and type parameters are required' });
+    }
+  
+    try {
+      let whereClause = {};
+  
+      if (type === 'name') {
+        whereClause = {
+          name: {
+            [Op.iLike]: `%${query}%`,
+          },
+        };
+      } else if (type === 'position') {
+        whereClause = {
+          position: {
+            [Op.iLike]: `%${query}%`,
+          },
+        };
+      } else {
+        return res.status(400).json({ message: 'Invalid search type. Use "name" or "position".' });
+      }
+  
+      const users = await Users.findAll({
+        where: whereClause,
+      });
+  
+  
+      return res.json(users);
+    } catch (error) {
+      res.status(500)
+      .json({
+        message: "Internal server error",
+        error: error.message,
+        status: 500,
+      });
     }
   },
 };

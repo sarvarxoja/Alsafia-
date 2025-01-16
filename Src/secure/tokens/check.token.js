@@ -1,4 +1,5 @@
 import jwt from "jsonwebtoken";
+import { Admins } from "../../models/realations.js";
 
 export default {
   async checkAdminToken(req, res, next) {

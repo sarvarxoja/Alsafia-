@@ -101,7 +101,9 @@ auth_router
    *       429:
    *         description: Too many requests
    */
-  .post("/login", authMiddleware.checkLogin, limiter, authController.login)
+
+  // limiter
+  .post("/login", authMiddleware.checkLogin, authController.login)
   /**
    * @swagger
    * /auth/logout:
@@ -131,6 +133,20 @@ auth_router
    */
   .post(
     "/refresh/token",
-    checkToken.checkAdminToken,
+    // checkToken.checkAdminToken,
     authController.refreshToken
-  );
+  )
+  /**
+   * @swagger
+   * /auth/check:
+   *   get:
+   *     summary: check auth
+   *     tags: [Auth]
+   *     description: check auth token
+   *     responses:
+   *       200:
+   *         description: Token check successfully
+   *       500:
+   *         description: Internal server error
+   */
+  .get("/check", checkToken.checkAdminToken, authController.checkAuth);

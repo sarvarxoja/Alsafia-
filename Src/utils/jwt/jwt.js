@@ -16,7 +16,7 @@ export async function jwtSign(id, version) {
 
 export async function jwtVerifySign(email) {
   try {
-    const VERIFY_KEY = process.env.VERIFY_KEY;
+    const VERIFY_KEY = process.env.SECRET_KEY;
 
     let jwtData = jwt.sign({ email: email }, VERIFY_KEY, {
       expiresIn: "10m",
@@ -30,7 +30,7 @@ export async function jwtVerifySign(email) {
 
 export async function jwtRefreshSign(id, version) {
   try {
-    const SECRET_KEY = process.env.SECRET_KEY;
+    const SECRET_KEY = process.env.VERIFY_KEY;
     const expiresIn = 30 * 24 * 60 * 60;
     let jwtData = jwt.sign({ id: id, version: version }, SECRET_KEY, {
       expiresIn,
