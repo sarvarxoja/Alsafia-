@@ -1,13 +1,6 @@
 import moment from "moment-timezone";
 import { Users } from "../../models/realations.js";
 
-function isValidDate(date) {
-  const parsedDate = Date.parse(date);
-  const today = new Date();
-  // Check if the date is valid and not in the future
-  return !isNaN(parsedDate) && parsedDate <= today.getTime();
-}
-
 export default {
   async checkCreate(req, res, next) {
     try {
@@ -124,7 +117,11 @@ export default {
 
       return next();
     } catch (error) {
-      console.log(error);
+      res.status(500).json({
+        message: "Internal server error",
+        error: error.message,
+        status: 500,
+      });
     }
   },
 
@@ -255,7 +252,11 @@ export default {
 
       return next();
     } catch (error) {
-      console.log(error);
+      res.status(500).json({
+        message: "Internal server error",
+        error: error.message,
+        status: 500,
+      });
     }
   },
 };

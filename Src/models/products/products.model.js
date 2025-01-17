@@ -22,22 +22,22 @@ Products.init(
     },
 
     quantitySold: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.BIGINT,
       defaultValue: 0,
     },
 
     remainingAmount: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.BIGINT,
       defaultValue: 0,
     },
 
     totalAmount: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.BIGINT,
       allowNull: false,
     },
 
     price: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.BIGINT,
       allowNull: false,
     },
 
@@ -59,7 +59,7 @@ Products.init(
     },
 
     revenue: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.BIGINT,
       allowNull: false,
       defaultValue: 0,
     },

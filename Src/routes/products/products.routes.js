@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { upload } from "../../utils/multer/multer.js";
+import checkToken from "../../secure/tokens/check.token.js";
 import idMiddleware from "../../middlewares/id/id.middleware.js";
 import productsController from "../../controllers/products/products.controller.js";
 import productsMiddleware from "../../middlewares/products/products.middleware.js";
@@ -50,6 +51,7 @@ product_routes
    */
   .post(
     "/create",
+    checkToken.checkPmToken,
     upload.single("productImage"),
     productsMiddleware.checkCreate,
     productsController.create
@@ -79,7 +81,7 @@ product_routes
    *       500:
    *         description: "Internal server error"
    */
-  .get("/search", productsController.searchProduct)
+  .get("/search",  checkToken.checkPmToken, productsController.searchProduct)
   /**
    * @swagger
    * /products/all:
@@ -93,7 +95,7 @@ product_routes
    *       500:
    *         description: Internal server error
    */
-  .get("/all", productsController.find)
+  .get("/all",  checkToken.checkPmToken, productsController.find)
   /**
    * @swagger
    * /products/sell/{id}:
@@ -116,6 +118,7 @@ product_routes
    */
   .patch(
     "/sell/:id",
+    checkToken.checkPmToken,
     idMiddleware.checkId,
     productsMiddleware.checkSell,
     productsController.sell
@@ -140,7 +143,7 @@ product_routes
    *       500:
    *         description: Internal server error
    */
-  .get("/single/:id", idMiddleware.checkId, productsController.findById)
+  .get("/single/:id", checkToken.checkPmToken, idMiddleware.checkId, productsController.findById)
   /**
    * @swagger
    * /products/update/{id}:
@@ -176,6 +179,7 @@ product_routes
    */
   .patch(
     "/update/:id",
+    checkToken.checkPmToken,
     idMiddleware.checkId,
     productsMiddleware.checkUpdate,
     productsController.update
@@ -200,7 +204,7 @@ product_routes
    *       500:
    *         description: Internal server error
    */
-  .delete("/delete/:id", idMiddleware.checkId, productsController.delete)
+  .delete("/delete/:id", checkToken.checkPmToken, idMiddleware.checkId, productsController.delete)
   /**
    * @swagger
    * /products/download:
@@ -214,4 +218,4 @@ product_routes
    *       500:
    *         description: Internal server error
    */
-  .get("/download", productsController.download);
+  .get("/download", checkToken.checkPmToken, productsController.download);

@@ -117,7 +117,7 @@ auth_router
    *       500:
    *         description: Internal server error
    */
-  .post("/logout", checkToken.checkAdminToken, authController.logout)
+  .post("/logout", checkToken.checkUserToken, authController.logout)
   /**
    * @swagger
    * /auth/refresh/token:
@@ -131,11 +131,7 @@ auth_router
    *       500:
    *         description: Internal server error
    */
-  .post(
-    "/refresh/token",
-    // checkToken.checkAdminToken,
-    authController.refreshToken
-  )
+  .post("/refresh/token", authController.refreshToken)
   /**
    * @swagger
    * /auth/check:
@@ -149,4 +145,4 @@ auth_router
    *       500:
    *         description: Internal server error
    */
-  .get("/check", checkToken.checkAdminToken, authController.checkAuth);
+  .get("/check", checkToken.checkUserToken, authController.checkAuth);

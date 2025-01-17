@@ -3,9 +3,9 @@ import { Admins } from "../../models/realations.js";
 export default {
   async checkRegister(req, res, next) {
     try {
-      let { name, lastName, password, phoneNumber } = req.body;
+      let { name, lastName, password, phoneNumber, role } = req.body;
 
-      if (!name || !lastName || !password || !phoneNumber) {
+      if (!name || !lastName || !password || !phoneNumber || !role) {
         return res.status(400).json({ message: "Please fill in all fields" });
       }
 
@@ -17,10 +17,8 @@ export default {
         return res.status(400).json({ message: "Password must be at least 8" });
       }
 
-      let phoneNumberRegex = /^[0-9]+$/;
-
-      if (!phoneNumberRegex.test(phoneNumber)) {
-        return res.status(400).json({ message: "Invalide phone number" });
+      if ( typeof phoneNumber !== "string") {
+        return res.status(400).json({ message: "Invalide phone number. Phone number must be string" });
       }
 
       let nameRegex = /^[a-zA-Z]+$/;
@@ -54,9 +52,19 @@ export default {
         return res.status(400).json({ message: "Phone number already exists" });
       }
 
+      if (role === "hr" && role === "pm") {
+        return res
+          .status(400)
+          .json({ message: "role must be hr or pm", status: 400 });
+      }
+
       return next();
     } catch (error) {
-      console.log(error);
+      res.status(500).json({
+        message: "Internal server error",
+        error: error.message,
+        status: 500,
+      });
     }
   },
 
@@ -82,7 +90,11 @@ export default {
 
       return next();
     } catch (error) {
-      console.log(error);
+      res.status(500).json({
+        message: "Internal server error",
+        error: error.message,
+        status: 500,
+      });
     }
   },
 };

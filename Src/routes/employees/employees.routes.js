@@ -1,4 +1,5 @@
 import { Router } from "express";
+import checkToken from "../../secure/tokens/check.token.js";
 import idMiddleware from "../../middlewares/id/id.middleware.js";
 import employeesController from "../../controllers/users/employees.controller.js";
 import employeesMiddleware from "../../middlewares/employe/employees.middleware.js";
@@ -66,7 +67,12 @@ employee_routes
    *       400:
    *         description: Please fill in all fields
    */
-  .post("/create", employeesMiddleware.checkCreate, employeesController.create)
+  .post(
+    "/create",
+    checkToken.checkHrToken,
+    employeesMiddleware.checkCreate,
+    employeesController.create
+  )
   /**
    * @swagger
    * /employee/get/all:
@@ -80,7 +86,7 @@ employee_routes
    *       500:
    *         description: Internal server error
    */
-  .get("/get/all", employeesController.find)
+  .get("/get/all", checkToken.checkHrToken, employeesController.find)
   /**
    * @swagger
    * /employee/{id}:
@@ -101,7 +107,12 @@ employee_routes
    *       500:
    *         description: Internal server error
    */
-  .get("/:id", idMiddleware.checkId, employeesController.findById)
+  .get(
+    "/:id",
+    checkToken.checkHrToken,
+    idMiddleware.checkId,
+    employeesController.findById
+  )
   /**
    * @swagger
    * /employee/update/{id}:
@@ -145,6 +156,7 @@ employee_routes
    */
   .patch(
     "/update/:id",
+    checkToken.checkHrToken,
     idMiddleware.checkId,
     employeesMiddleware.checkUpdate,
     employeesController.update
@@ -169,7 +181,12 @@ employee_routes
    *       500:
    *         description: Internal server error
    */
-  .delete("/delete/:id", idMiddleware.checkId, employeesController.delete)
+  .delete(
+    "/delete/:id",
+    checkToken.checkHrToken,
+    idMiddleware.checkId,
+    employeesController.delete
+  )
   /**
    * @swagger
    * /employee/download:
@@ -183,7 +200,7 @@ employee_routes
    *       500:
    *         description: Internal server error
    */
-  .get("/download/data", employeesController.download)
+  .get("/download/data", checkToken.checkHrToken, employeesController.download)
   /**
    * @swagger
    * /employee/search:
@@ -206,4 +223,4 @@ employee_routes
    *       500:
    *         description: "Internal server error"
    */
-  .get("/data/search", employeesController.search);
+  .get("/data/search", checkToken.checkHrToken, employeesController.search);

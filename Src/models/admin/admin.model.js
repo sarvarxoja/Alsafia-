@@ -39,6 +39,21 @@ Admins.init(
       defaultValue: 0,
     },
 
+    supperAdmin: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+    },
+
+    role: {
+      type: DataTypes.STRING,
+      defaultValue: "unknown",
+    },
+
+    deleted: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+    },
+
     lastLogin: {
       type: DataTypes.DATE,
       defaultValue: null,

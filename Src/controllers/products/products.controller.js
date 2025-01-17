@@ -29,8 +29,7 @@ export default {
         status: 201,
       });
     } catch (error) {
-      res.status(500)
-      .json({
+      res.status(500).json({
         message: "Internal server error",
         error: error.message,
         status: 500,
@@ -73,8 +72,7 @@ export default {
         status: 200,
       });
     } catch (error) {
-      res.status(500)
-      .json({
+      res.status(500).json({
         message: "Internal server error",
         error: error.message,
         status: 500,
@@ -85,7 +83,7 @@ export default {
   async findById(req, res) {
     try {
       let { id } = req.params;
-  
+
       let data = await Products.findByPk(id, {
         include: [
           {
@@ -94,63 +92,66 @@ export default {
           },
         ],
       });
-  
+
       if (!data || data.deleted) {
         return res.status(404).json({
           message: "Product not found",
           status: 404,
         });
       }
-  
-      // Unikal adminId larni olish
-      const adminIds = [...new Set(data.actionsTaken.map((action) => action.adminId))];
-  
-      // Barcha adminlarni bir so'rovda olish
-      const admins = await Admins.findAll({
-        where: { id: adminIds },
-        attributes: ["id", "name", "lastName", "phoneNumber"],
-      });
-  
-      // Adminlarni obyekt shaklida xaritalash
-      const adminMap = admins.reduce((map, admin) => {
-        map[admin.id] = admin;
-        return map;
-      }, {});
-  
-      // actionsTaken ma'lumotlariga admin ma'lumotlarini qo'shish
-      const actionsTakenWithAdmins = data.actionsTaken.map((action) => ({
-        ...action,
-        adminInfo: adminMap[action.adminId] || null,
-      }));
-  
-      data = {
-        ...data.toJSON(),
-        actionsTaken: actionsTakenWithAdmins,
-      };
-  
+
+      if (data.actionsTaken) {
+        const adminIds = [
+          ...new Set(data.actionsTaken.map((action) => action.adminId)),
+        ];
+
+        // Barcha adminlarni bir so'rovda olish
+        const admins = await Admins.findAll({
+          where: { id: adminIds },
+          attributes: ["id", "name", "lastName", "phoneNumber"],
+        });
+
+        // Adminlarni obyekt shaklida xaritalash
+        const adminMap = admins.reduce((map, admin) => {
+          map[admin.id] = admin;
+          return map;
+        }, {});
+
+        // actionsTaken ma'lumotlariga admin ma'lumotlarini qo'shish
+        const actionsTakenWithAdmins = data.actionsTaken.map((action) => ({
+          ...action,
+          adminInfo: adminMap[action.adminId] || null,
+        }));
+
+        data = {
+          ...data.toJSON(),
+          actionsTaken: actionsTakenWithAdmins,
+        };
+      }
+
       res.status(200).json({
         data,
         message: "Product fetched successfully",
         status: 200,
       });
     } catch (error) {
-      res.status(500)
-      .json({
+      console.log(error);
+      res.status(500).json({
         message: "Internal server error",
         error: error.message,
         status: 500,
       });
-    } 
+    }
   },
 
   async sell(req, res) {
     try {
       const { id } = req.params; // Mahsulot ID
       let { amount } = req.body; // Sotiladigan miqdor
-  
+
       // `amount` ni raqamga o'zgartirish
       amount = parseInt(amount, 10);
-  
+
       // Agar `amount` raqamga o'zgartirilsa va noto'g'ri bo'lsa, xatolik yuborish
       if (isNaN(amount)) {
         return res.status(400).json({
@@ -158,7 +159,7 @@ export default {
           status: 400,
         });
       }
-  
+
       // Mahsulotni olish va adminni biriktirish
       const product = await Products.findByPk(id, {
         include: [
@@ -168,7 +169,7 @@ export default {
           },
         ],
       });
-  
+
       // Mahsulot mavjudligi va o‘chirilganligini tekshirish
       if (!product || product.deleted) {
         return res.status(404).json({
@@ -176,7 +177,7 @@ export default {
           status: 404,
         });
       }
-  
+
       // Yetarli miqdorda mahsulot borligini tekshirish
       if (product.remainingAmount < amount) {
         return res.status(400).json({
@@ -186,11 +187,11 @@ export default {
           availableAmount: product.remainingAmount,
         });
       }
-  
+
       // Sotish jarayonida mahsulot miqdorini yangilash
       const updatedRemainingAmount = product.remainingAmount - amount;
       const updatedQuantitySold = product.quantitySold + amount;
-  
+
       // Yangi harakatni yaratish
       const newAction = {
         action: "sold", // Harakat turi
@@ -198,10 +199,10 @@ export default {
         adminId: req.admin.id, // Admin ID
         timestamp: moment().tz("Asia/Tashkent").format(), // Vaqt
       };
-  
+
       // `actionsTaken` massivini yangilash
       const updatedActions = [...(product.actionsTaken || []), newAction];
-  
+
       // Mahsulotni yangilash
       await product.update(
         {
@@ -210,10 +211,15 @@ export default {
           actionsTaken: updatedActions, // Yangilangan actions
         },
         {
-          fields: ["remainingAmount", "quantitySold", "revenue","actionsTaken"], // Faqat kerakli maydonlarni yangilash
+          fields: [
+            "remainingAmount",
+            "quantitySold",
+            "revenue",
+            "actionsTaken",
+          ], // Faqat kerakli maydonlarni yangilash
         }
       );
-  
+
       // Javobni qaytarish
       return res.status(200).json({
         message: "Savdo muvaffaqiyatli amalga oshirildi",
@@ -227,8 +233,7 @@ export default {
         },
       });
     } catch (error) {
-      res.status(500)
-      .json({
+      res.status(500).json({
         message: "Internal server error",
         error: error.message,
         status: 500,
@@ -275,8 +280,7 @@ export default {
         status: 200,
       });
     } catch (error) {
-      res.status(500)
-      .json({
+      res.status(500).json({
         message: "Internal server error",
         error: error.message,
         status: 500,
@@ -309,8 +313,7 @@ export default {
         data: products,
       });
     } catch (error) {
-      res.status(500)
-      .json({
+      res.status(500).json({
         message: "Internal server error",
         error: error.message,
         status: 500,
@@ -322,26 +325,28 @@ export default {
     try {
       const { id } = req.params;
       const { name, amount } = req.body;
-  
+
       const product = await Products.findByPk(id);
       if (!product) {
         return res.status(404).json({ message: "Mahsulot topilmadi!" });
       }
-  
+
       if (name) {
         product.name = name.trim();
       }
-  
+
       let updatedActions = [...(product.actionsTaken || [])];
-  
+
       if (amount) {
         const parsedAmount = Number(amount);
         if (isNaN(parsedAmount)) {
-          return res.status(400).json({ message: "Amount noto'g'ri formatda!" });
+          return res
+            .status(400)
+            .json({ message: "Amount noto'g'ri formatda!" });
         }
         product.totalAmount += parsedAmount;
         product.remainingAmount += parsedAmount;
-  
+
         // Yangi actionni qo'shish
         updatedActions.push({
           action: "update amount or name",
@@ -349,7 +354,7 @@ export default {
           timestamp: moment().tz("Asia/Tashkent").format(),
         });
       }
-  
+
       // Mahsulotni yangilash
       await product.update(
         {
@@ -359,17 +364,22 @@ export default {
           actionsTaken: updatedActions,
         },
         {
-          fields: ["name", "totalAmount", "remainingAmount", "actionsTaken"],
+          fields: [
+            "name",
+            "totalAmount",
+            "totalPrice",
+            "remainingAmount",
+            "actionsTaken",
+          ],
         }
       );
-  
+
       res.status(200).json({
         message: "Mahsulot muvaffaqiyatli yangilandi!",
         product,
       });
     } catch (error) {
-      res.status(500)
-      .json({
+      res.status(500).json({
         message: "Internal server error",
         error: error.message,
         status: 500,
@@ -379,7 +389,7 @@ export default {
 
   async download(req, res) {
     try {
-      const products = await Products.findAll();
+      const products = await Products.findAll({ where: { deleted: false } });
 
       const workbook = new ExcelJS.Workbook();
       const worksheet = workbook.addWorksheet("Mahsulotlar");
@@ -415,8 +425,7 @@ export default {
       await workbook.xlsx.write(res);
       res.end();
     } catch (error) {
-      res.status(500)
-      .json({
+      res.status(500).json({
         message: "Internal server error",
         error: error.message,
         status: 500,

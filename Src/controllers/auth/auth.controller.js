@@ -6,7 +6,7 @@ import { comparePassword, encodePassword } from "../../utils/bcrypt/bcrypt.js";
 export default {
   async register(req, res) {
     try {
-      let { name, lastName, password, phoneNumber } = req.body;
+      let { name, lastName, password, phoneNumber, role } = req.body;
 
       password = await encodePassword(password);
 
@@ -15,6 +15,7 @@ export default {
         lastName: lastName,
         password: password,
         phoneNumber: phoneNumber,
+        role: role,
       });
 
       res.status(201).json({
@@ -36,7 +37,7 @@ export default {
       let { phoneNumber, password } = req.body;
 
       let data = await Admins.findOne({
-        where: { phoneNumber: phoneNumber },
+        where: { phoneNumber: phoneNumber, deleted: false },
       });
 
       if (data) {
@@ -63,6 +64,7 @@ export default {
 
           return res.status(200).json({
             name: data.name,
+            role: data.role,
             lastName: data.lastName,
             phoneNumber: data.phoneNumber,
             status: 200,
@@ -152,8 +154,7 @@ export default {
         status: 200,
       });
     } catch (error) {
-      res.status(500)
-      .json({
+      res.status(500).json({
         message: "Internal server error",
         error: error.message,
         status: 500,
@@ -167,8 +168,7 @@ export default {
         .status(200)
         .json({ message: "You have access to this site!", status: 200 });
     } catch (error) {
-      res.status(500)
-      .json({
+      res.status(500).json({
         message: "Internal server error",
         error: error.message,
         status: 500,

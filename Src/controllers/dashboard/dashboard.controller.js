@@ -16,7 +16,7 @@ export default {
       // Mahsulotlar statistikasi (remainingAmount va price bilan birga)
       const salesStats = await Products.findAll({
         where: { deleted: false },
-        attributes: ["id", "name", "actionsTaken", "remainingAmount", "price"],
+        attributes: ["id", "name", "actionsTaken", "remainingAmount", "totalPrice"],
       });
 
       let weeklySales = 0;
@@ -47,7 +47,7 @@ export default {
 
         // Qolgan mahsulotlar miqdorini va narxini hisoblash
         totalRemainingAmount += product.remainingAmount || 0;
-        totalPrice += product.price || 0;
+        totalPrice += product.totalPrice || 0;
       });
 
       // Javobni qaytarish
