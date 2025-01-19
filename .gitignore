@@ -35,3 +35,4 @@ build/
 
 # Optional: Ignore coverage folder (if using test coverage tools like Jest)
 coverage/
+.vercel

@@ -1,16 +1,17 @@
 {
   "name": "sklad-backend",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Bitrix va Express.js integratsiyasi",
+  "main": "./Src/server.js",
   "type": "module",
   "scripts": {
-    "dev": "nodemon ./Src/server.js"
+    "start": "node ./Src/server.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@vercel/node": "^5.0.2",
     "bcrypt": "^5.1.1",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
