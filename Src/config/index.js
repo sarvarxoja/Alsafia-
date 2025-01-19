@@ -1,9 +1,12 @@
+import pg from 'pg';
 import { Sequelize } from "sequelize";
 
 const DB = process.env.DB;
 
 const newSequlize = new Sequelize(DB, {
   logging: false,
+  dialect: 'postgres',
+  dialectModule: pg
 });
 
 !(async function () {
@@ -11,7 +14,7 @@ const newSequlize = new Sequelize(DB, {
     await newSequlize.authenticate();
     console.log("successfully");
   } catch (error) {
-    console.error(error.message);
+    console.error(error);
   }
 })();
 

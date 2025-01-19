@@ -22,11 +22,10 @@ import { product_routes } from "./routes/products/products.routes.js";
 import { employee_routes } from "./routes/employees/employees.routes.js";
 import dashboardController from "./controllers/dashboard/dashboard.controller.js";
 
-async function starter() {
-  try {
-    const app = express();
-    const PORT = process.env.PORT;
+const app = express();
 
+async function configureApp() {
+  try {
     app.use(
       cors({
         origin: "http://localhost:5173",
@@ -73,11 +72,11 @@ async function starter() {
         status: 404,
       });
     });
-
-    app.listen(PORT, console.log(`server is running on ${PORT} port!!`));
   } catch (error) {
     console.log(error.message);
   }
 }
 
-starter();
+configureApp();
+
+export default app;
