@@ -22,9 +22,10 @@ import { product_routes } from "./routes/products/products.routes.js";
 import { employee_routes } from "./routes/employees/employees.routes.js";
 import dashboardController from "./controllers/dashboard/dashboard.controller.js";
 
+const app = express();
+
 async function starter() {
   try {
-    const app = express();
     const PORT = process.env.PORT;
 
     app.use(
@@ -81,3 +82,5 @@ async function starter() {
 }
 
 starter();
+
+export default app;
