@@ -4,13 +4,7 @@ export default {
   async getData(req, res) {
     try {
       const response = await axios.get(
-        `${process.env.BITRIX_API_URL}?auth=${process.env.BITRIX_TOKEN}`,
-        {
-          headers: {
-            Referer: "https://sklad-backend.vercel.app",
-            Origin: "https://sklad-backend.vercel.app",
-          },
-        }
+        `${process.env.BITRIX_API_URL}?auth=${process.env.BITRIX_TOKEN}`
       );
 
       //   console.log(response.data);
