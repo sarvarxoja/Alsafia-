@@ -5,13 +5,15 @@
   "main": "./Src/server.js",
   "type": "module",
   "scripts": {
-    "start": "node ./Src/server.js"
+    "start": "node ./Src/server.js",
+    "dev": "nodemon ./Src/server.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "@vercel/node": "^4.0.0",
+    "axios": "^1.7.9",
     "bcrypt": "^5.1.1",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",

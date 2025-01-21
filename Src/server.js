@@ -21,6 +21,7 @@ import { admin_router } from "./routes/admins/admin.routes.js";
 import { product_routes } from "./routes/products/products.routes.js";
 import { employee_routes } from "./routes/employees/employees.routes.js";
 import dashboardController from "./controllers/dashboard/dashboard.controller.js";
+import integrationsController from "./controllers/integrations/integrations.controller.js";
 
 const app = express();
 
@@ -52,6 +53,7 @@ async function starter() {
     app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocs));
     app.use(express.static(path.join(path.resolve(), "uploads")));
 
+    app.get("/get/bitrix/data", integrationsController.getData);
     app.use(checkKey.checkApiKey);
     app.use("/auth", auth_router);
     app.use("/admin", admin_router);
