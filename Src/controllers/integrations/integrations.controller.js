@@ -4,15 +4,7 @@ export default {
   async getData(req, res) {
     try {
       let url = `${process.env.BITRIX_API_URL}/rest/${process.env.BITRIX_ID}/${process.env.BITRIX_TOKEN}`;
-      const response = await axios.post(`${url}/batch`, {
-        cmd: {
-          users: "user.get", // Foydalanuvchilar ro'yxati
-          deals: "crm.deal.list", // Kelishuvlar
-          contacts: "crm.contact.list", // Kontaktlar
-          companies: "crm.company.list", // Kompaniyalar
-          tasks: "task.item.list", // Vazifalar
-        },
-      });
+      const response = await axios.post(`${url}/batch.json`);
 
       console.log(url);
       console.log(response);
