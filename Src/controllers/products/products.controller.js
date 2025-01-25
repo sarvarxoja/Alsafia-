@@ -6,7 +6,7 @@ import { Admins, Products } from "../../models/realations.js";
 export default {
   async create(req, res) {
     try {
-      let { name, totalAmount, price } = req.body;
+      let { name, totalAmount, price, cost, currency } = req.body;
 
       if (!req.file) {
         return res
@@ -14,10 +14,18 @@ export default {
           .json({ message: "productImage must not be empty", status: 400 });
       }
 
+      if (!Array.isArray(price)) {
+        return res
+          .status(400)
+          .json({ message: "Price must be an array", status: 400 });
+      }
+
       let createdData = await Products.create({
         name,
         totalAmount,
-        price,
+        price: price,
+        currency,
+        cost,
         remainingAmount: totalAmount,
         productImage: `/${req.file.filename}`,
         adminId: req.admin.id,
@@ -82,9 +90,9 @@ export default {
 
   async findById(req, res) {
     try {
-      let { id } = req.params;
+      const { id } = req.params;
 
-      let data = await Products.findByPk(id, {
+      let product = await Products.findByPk(id, {
         include: [
           {
             model: Admins,
@@ -93,49 +101,56 @@ export default {
         ],
       });
 
-      if (!data || data.deleted) {
+      if (!product || product.deleted) {
         return res.status(404).json({
           message: "Product not found",
           status: 404,
         });
       }
 
-      if (data.actionsTaken) {
+      if (product.actionsTaken) {
+        // actionsTaken ma'lumotlarini JSON formatida parse qilish
+        const actionsTaken = product.actionsTaken;
+
+        // `timestamp` bo'yicha kamayish tartibida saralash
+        const sortedActions = actionsTaken.sort(
+          (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
+        );
+
         const adminIds = [
-          ...new Set(data.actionsTaken.map((action) => action.adminId)),
+          ...new Set(sortedActions.map((action) => action.adminId)),
         ];
 
-        // Barcha adminlarni bir so'rovda olish
+        // Admin ma'lumotlarini olish
         const admins = await Admins.findAll({
           where: { id: adminIds },
           attributes: ["id", "name", "lastName", "phoneNumber"],
         });
 
-        // Adminlarni obyekt shaklida xaritalash
         const adminMap = admins.reduce((map, admin) => {
           map[admin.id] = admin;
           return map;
         }, {});
 
-        // actionsTaken ma'lumotlariga admin ma'lumotlarini qo'shish
-        const actionsTakenWithAdmins = data.actionsTaken.map((action) => ({
+        // Saralangan `actionsTaken`ga admin ma'lumotlarini qo'shish
+        const actionsWithAdmins = sortedActions.map((action) => ({
           ...action,
           adminInfo: adminMap[action.adminId] || null,
         }));
 
-        data = {
-          ...data.toJSON(),
-          actionsTaken: actionsTakenWithAdmins,
+        product = {
+          ...product.toJSON(),
+          actionsTaken: actionsWithAdmins,
         };
       }
 
       res.status(200).json({
-        data,
+        data: product,
         message: "Product fetched successfully",
         status: 200,
       });
     } catch (error) {
-      console.log(error);
+      console.error(error);
       res.status(500).json({
         message: "Internal server error",
         error: error.message,
@@ -147,7 +162,7 @@ export default {
   async sell(req, res) {
     try {
       const { id } = req.params; // Mahsulot ID
-      let { amount } = req.body; // Sotiladigan miqdor
+      let { amount, price } = req.body; // Sotiladigan miqdor
 
       // `amount` ni raqamga o'zgartirish
       amount = parseInt(amount, 10);
@@ -189,13 +204,15 @@ export default {
       }
 
       // Sotish jarayonida mahsulot miqdorini yangilash
-      const updatedRemainingAmount = product.remainingAmount - amount;
-      const updatedQuantitySold = product.quantitySold + amount;
+      const updatedRemainingAmount = Number(product.remainingAmount) - amount;
+      const updatedQuantitySold = Number(product.quantitySold) + amount;
+      const updatedRevenue = Number(product.revenue) + Number(price);
 
       // Yangi harakatni yaratish
       const newAction = {
         action: "sold", // Harakat turi
         numberOfSales: amount, // Sotilgan miqdor
+        price: price,
         adminId: req.admin.id, // Admin ID
         timestamp: moment().tz("Asia/Tashkent").format(), // Vaqt
       };
@@ -209,6 +226,7 @@ export default {
           remainingAmount: updatedRemainingAmount, // Qolgan miqdor
           quantitySold: updatedQuantitySold, // Sotilgan miqdor
           actionsTaken: updatedActions, // Yangilangan actions
+          revenue: updatedRevenue,
         },
         {
           fields: [
@@ -324,9 +342,10 @@ export default {
   async update(req, res) {
     try {
       const { id } = req.params;
-      const { name, amount } = req.body;
+      const { name, amount, cost } = req.body;
 
       const product = await Products.findByPk(id);
+
       if (!product) {
         return res.status(404).json({ message: "Mahsulot topilmadi!" });
       }
@@ -338,14 +357,16 @@ export default {
       let updatedActions = [...(product.actionsTaken || [])];
 
       if (amount) {
-        const parsedAmount = Number(amount);
+        const parsedAmount = parseFloat(amount); // parseFloat ishlatilmoqda
         if (isNaN(parsedAmount)) {
           return res
             .status(400)
             .json({ message: "Amount noto'g'ri formatda!" });
         }
-        product.totalAmount += parsedAmount;
-        product.remainingAmount += parsedAmount;
+        product.totalAmount =
+          parseFloat(product.totalAmount || 0) + parsedAmount; // To'g'ri raqamga o'zgartirish
+        product.remainingAmount =
+          parseFloat(product.remainingAmount || 0) + parsedAmount;
 
         // Yangi actionni qo'shish
         updatedActions.push({
@@ -355,11 +376,20 @@ export default {
         });
       }
 
+      if (cost) {
+        const parsedCost = parseFloat(cost);
+        if (isNaN(parsedCost)) {
+          return res.status(400).json({ message: "Cost noto'g'ri formatda!" });
+        }
+        product.cost = parseFloat(product.cost || 0) + parsedCost;
+      }
+
       // Mahsulotni yangilash
       await product.update(
         {
           name: product.name,
           totalAmount: product.totalAmount,
+          cost: product.cost,
           remainingAmount: product.remainingAmount,
           actionsTaken: updatedActions,
         },
@@ -367,9 +397,9 @@ export default {
           fields: [
             "name",
             "totalAmount",
-            "totalPrice",
             "remainingAmount",
             "actionsTaken",
+            "cost",
           ],
         }
       );
@@ -379,6 +409,7 @@ export default {
         product,
       });
     } catch (error) {
+      console.log(error);
       res.status(500).json({
         message: "Internal server error",
         error: error.message,
@@ -402,7 +433,6 @@ export default {
         { header: "Qolgan miqdor", key: "remainingAmount", width: 15 },
         { header: "Jami miqdor", key: "totalAmount", width: 15 },
         { header: "Narxi", key: "price", width: 10 },
-        { header: "Umumiy narx", key: "totalPrice", width: 15 },
         { header: "Daromad", key: "revenue", width: 15 },
       ];
 

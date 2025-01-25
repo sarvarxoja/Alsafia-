@@ -37,14 +37,8 @@ Products.init(
     },
 
     price: {
-      type: DataTypes.BIGINT,
+      type: DataTypes.ARRAY(DataTypes.BIGINT),
       allowNull: false,
-    },
-
-    totalPrice: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      defaultValue: 0,
     },
 
     actionsTaken: {
@@ -64,6 +58,16 @@ Products.init(
       defaultValue: 0,
     },
 
+    cost: {
+      type: DataTypes.BIGINT,
+      defaultValue: 0,
+    },
+
+    currency: {
+      type: DataTypes.STRING,
+      defaultValue: "SUM",
+    },
+
     adminId: {
       type: DataTypes.UUID,
       allowNull: false,
@@ -76,17 +80,17 @@ Products.init(
   {
     sequelize: newSequlize,
     modelName: "Products",
-    hooks: {
-      beforeCreate: (product, options) => {
-        product.totalPrice = product.totalAmount * product.price;
-        product.revenue = product.quantitySold * product.price; 
-      },
-      beforeUpdate: (product, options) => {
-        if (product.changed('quantitySold')) {
-          product.revenue = product.quantitySold * product.price;
-        }
-        product.totalPrice = product.totalAmount * product.price;
-      },
-    },
+    // hooks: {
+    //   beforeCreate: (product, options) => {
+    //     product.totalPrice = product.totalAmount * product.price;
+    //     product.revenue = product.quantitySold * product.price;
+    //   },
+    //   beforeUpdate: (product, options) => {
+    //     if (product.changed('quantitySold')) {
+    //       product.revenue = product.quantitySold * product.price;
+    //     }
+    //     product.totalPrice = product.totalAmount * product.price;
+    //   },
+    // },
   }
 );

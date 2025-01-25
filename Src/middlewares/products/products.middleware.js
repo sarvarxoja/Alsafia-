@@ -31,9 +31,9 @@ export default {
 
   checkSell(req, res, next) {
     try {
-      let { amount } = req.body;
+      let { amount, price } = req.body;
 
-      if (!amount) {
+      if (!amount || !price) {
         return res.status(400).json({ message: "Please fill in all fields" });
       }
 
@@ -53,9 +53,9 @@ export default {
 
   checkUpdate(req, res, next) {
     try {
-      let { name, amount } = req.body;
+      let { name, amount, cost } = req.body;
 
-      if (!name && !amount) {
+      if (!name && !amount && !cost) {
         return res.status(400).json({ message: "Please fill in all fields" });
       }
 
@@ -68,7 +68,7 @@ export default {
           .json({ message: "Name must be at least 2 characters" });
       }
 
-      if (amount && (amount < 1)) {
+      if (amount && amount < 1) {
         return res.status(400).json({ message: "Amount must be at least 1" });
       }
 

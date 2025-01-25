@@ -98,11 +98,14 @@ export default {
 
       if (
         typeof salaryType !== "string" ||
-        (salaryType !== "stable" && salaryType !== "percentage")
+        (salaryType !== "stable" &&
+          salaryType !== "percentage" &&
+          salaryType !== "stable_and_percentage")
       ) {
-        return res
-          .status(400)
-          .json({ message: "Salary type must be stable or percentage" });
+        return res.status(400).json({
+          message:
+            "Salary type must be stable, percentage or stable_and_percentage",
+        });
       }
 
       if (
@@ -190,7 +193,7 @@ export default {
       if (phoneNumber) {
         if (
           typeof phoneNumber !== "string" ||
-          phoneNumber.length < 10 ||
+          phoneNumber.length < 7 ||
           phoneNumber.length > 15
         ) {
           return res
@@ -230,7 +233,10 @@ export default {
       if (salaryType) {
         if (
           typeof salaryType !== "string" ||
-          (salaryType !== "stable" && salaryType !== "percentage")
+          (salaryType !== "stable" &&
+            salaryType !== "percentage" &&
+            salaryType !== "stable_and_percentage" &&
+            salaryType !== "unknown")
         ) {
           return res
             .status(400)

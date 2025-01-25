@@ -16,14 +16,13 @@ export default {
       // Mahsulotlar statistikasi (remainingAmount va price bilan birga)
       const salesStats = await Products.findAll({
         where: { deleted: false },
-        attributes: ["id", "name", "actionsTaken", "remainingAmount", "totalPrice"],
+        attributes: ["id", "name", "actionsTaken", "remainingAmount"],
       });
 
       let weeklySales = 0;
       let yearlySales = 0;
       let dailySales = 0;
       let totalRemainingAmount = 0; // Qolgan mahsulotlar miqdori
-      let totalPrice = 0; // Mahsulotlar narxlari yig'indisi
 
       salesStats.forEach((product) => {
         const actions = product.actionsTaken || [];
@@ -47,7 +46,6 @@ export default {
 
         // Qolgan mahsulotlar miqdorini va narxini hisoblash
         totalRemainingAmount += product.remainingAmount || 0;
-        totalPrice += product.totalPrice || 0;
       });
 
       // Javobni qaytarish
@@ -57,11 +55,9 @@ export default {
         yearlySales,
         dailySales,
         totalRemainingAmount, // Jami qolgan mahsulotlar soni
-        totalPrice, // Jami mahsulotlar narxlari yig'indisi
       });
     } catch (error) {
-      res.status(500)
-      .json({
+      res.status(500).json({
         message: "Internal server error",
         error: error.message,
         status: 500,
@@ -120,8 +116,7 @@ export default {
         salaryTypeCounts: salaryTypeCountsObject,
       });
     } catch (error) {
-      res.status(500)
-      .json({
+      res.status(500).json({
         message: "Internal server error",
         error: error.message,
         status: 500,

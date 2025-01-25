@@ -11,6 +11,13 @@ Users.init(
       primaryKey: true,
     },
 
+    system_id: {
+      type: DataTypes.STRING,
+      unique: true,
+      allowNull: true, // `defaultValue: null` o‘rniga qo‘llanadi
+      defaultValue: null,
+    },
+
     name: {
       type: DataTypes.STRING(50),
       allowNull: true,
@@ -27,38 +34,65 @@ Users.init(
     },
 
     dateOfEmployment: {
-      type: DataTypes.DATE, // `String` ni `DATE`ga o'zgartirdim
-      allowNull: false,
+      type: DataTypes.STRING,
+      defaultValue: null,
     },
 
     phoneNumber: {
       type: DataTypes.STRING,
-      unique: true,
+      defaultValue: null,
+    },
+
+    email: {
+      type: DataTypes.STRING,
       validate: {
-        len: [10, 15], // Minimal uzunlik: 10, Maksimal uzunlik: 15
+        isEmail: true, // Email formatini tekshirish
       },
     },
 
     dateOfBirth: {
-      type: DataTypes.DATE,
-      allowNull: false,
+      type: DataTypes.STRING,
+      defaultValue: null,
     },
 
     parentName: {
       type: DataTypes.STRING,
+      allowNull: true,
     },
 
     salaryType: {
-      type: DataTypes.ENUM("stable", "percentage"),
+      type: DataTypes.ENUM(
+        "stable",
+        "percentage",
+        "unknown",
+        "stable_and_percentage"
+      ),
       allowNull: true,
     },
 
     comment: {
       type: DataTypes.STRING(500),
+      allowNull: true,
+    },
+
+    registered: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+
+    isOnline: {
+      type: DataTypes.BOOLEAN, // BOOLEAN turidan foydalanildi
+      defaultValue: false,
+    },
+
+    lastLogin: {
+      type: DataTypes.DATE,
+      defaultValue: null,
     },
   },
   {
     sequelize: newSequlize,
     tableName: "Employees",
+    timestamps: true, // Agar kerak bo‘lmasa, `false` qilib qo‘ying
   }
 );

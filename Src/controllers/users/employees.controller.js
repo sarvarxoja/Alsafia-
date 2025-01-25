@@ -35,8 +35,8 @@ export default {
         status: 201,
       });
     } catch (error) {
-      res.status(500)
-      .json({
+      console.log(error)
+      res.status(500).json({
         message: "Internal server error",
         error: error.message,
         status: 500,
@@ -68,8 +68,7 @@ export default {
         },
       });
     } catch (error) {
-      res.status(500)
-      .json({
+      res.status(500).json({
         message: "Internal server error",
         error: error.message,
         status: 500,
@@ -88,8 +87,7 @@ export default {
 
       res.status(200).json({ employee, status: 200 });
     } catch (error) {
-      res.status(500)
-      .json({
+      res.status(500).json({
         message: "Internal server error",
         error: error.message,
         status: 500,
@@ -128,8 +126,7 @@ export default {
         .status(200)
         .json({ message: "User updated successfully", data: user });
     } catch (error) {
-      res.status(500)
-      .json({
+      res.status(500).json({
         message: "Internal server error",
         error: error.message,
         status: 500,
@@ -150,8 +147,7 @@ export default {
 
       res.status(200).json({ message: "User deleted successfully" });
     } catch (error) {
-      res.status(500)
-      .json({
+      res.status(500).json({
         message: "Internal server error",
         error: error.message,
         status: 500,
@@ -211,40 +207,42 @@ export default {
   },
 
   async search(req, res) {
-    const { query, type } = req.query; 
+    const { query, type } = req.query;
 
     if (!query || !type) {
-      return res.status(400).json({ message: 'Both query and type parameters are required' });
+      return res
+        .status(400)
+        .json({ message: "Both query and type parameters are required" });
     }
-  
+
     try {
       let whereClause = {};
-  
-      if (type === 'name') {
+
+      if (type === "name") {
         whereClause = {
           name: {
             [Op.iLike]: `%${query}%`,
           },
         };
-      } else if (type === 'position') {
+      } else if (type === "position") {
         whereClause = {
           position: {
             [Op.iLike]: `%${query}%`,
           },
         };
       } else {
-        return res.status(400).json({ message: 'Invalid search type. Use "name" or "position".' });
+        return res
+          .status(400)
+          .json({ message: 'Invalid search type. Use "name" or "position".' });
       }
-  
+
       const users = await Users.findAll({
         where: whereClause,
       });
-  
-  
+
       return res.json(users);
     } catch (error) {
-      res.status(500)
-      .json({
+      res.status(500).json({
         message: "Internal server error",
         error: error.message,
         status: 500,
