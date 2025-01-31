@@ -145,4 +145,4 @@ auth_router
    *       500:
    *         description: Internal server error
    */
-  .get("/check", checkToken.checkUserToken, authController.chebckAuth);
+  .get("/check", checkToken.checkUserToken, authController.checkAuth);
