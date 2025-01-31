@@ -50,16 +50,18 @@ export default {
 
           res.cookie("refreshToken", refreshToken, {
             httpOnly: true,
-            secure: false,
-            sameSite: "lax",
-            maxAge: 30 * 24 * 60 * 60 * 1000, // 7 kun
+            secure: true,
+            sameSite: "None",
+            maxAge: 30 * 24 * 60 * 60 * 1000,
+            path: "/",
           });
 
           res.cookie("accessToken", accessToken, {
             httpOnly: true,
             secure: false, // HTTPS bo‘lmagan muhitda false
-            sameSite: "lax",
+            sameSite: "None",
             maxAge: 15 * 60 * 1000, // 15 daqiqa
+            path: "/",
           });
 
           return res.status(200).json({
@@ -76,6 +78,7 @@ export default {
           });
         }
       } else {
+        console.log(data);
         return res.status(401).json({
           msg: "No such user exists",
           status: 401,
@@ -125,9 +128,10 @@ export default {
         .status(200)
         .cookie("accessToken", await jwtSign(data.id, data.tokenVersion), {
           httpOnly: true,
-          secure: process.env.NODE_ENV === "production",
-          sameSite: "strict",
+          secure: true,
+          sameSite: 'None',
           maxAge: 15 * 60 * 1000, // 15 daqiqa
+          path: '/'
         })
         .json({ message: "Token refreshed", status: 200 });
     } catch (error) {

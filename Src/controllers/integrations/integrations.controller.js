@@ -55,84 +55,6 @@ async function copyData(req, res) {
   }
 }
 
-async function getContactsWorkStats(id) {
-  try {
-    if (!id) {
-      return { message: "bad request", status: 400 };
-    }
-
-    const url = `${process.env.BITRIX_API_URL}/rest/${process.env.BITRIX_ID}/${process.env.BITRIX_TOKEN}`;
-    let start = 0;
-    let allContacts = [];
-
-    do {
-      const response = await axios.post(
-        `${url}/batch.json`,
-        {
-          cmd: {
-            getContacts: `crm.contact.list?filter[ASSIGNED_BY_ID]=${id}&select[]=ID&select[]=LAST_ACTIVITY_TIME&select[]=DATE_CREATE&start=${start}`,
-          },
-        },
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      const currentContacts = response.data.result.result.getContacts;
-      allContacts = [...allContacts, ...currentContacts];
-      start = response.data.result.result_next.getContacts || null;
-    } while (start !== null);
-
-    // Endi statistikani hisoblash
-    let connected = 0;
-    let notConnected = 0;
-
-    allContacts.forEach((contact) => {
-      if (contact.DATE_CREATE !== contact.LAST_ACTIVITY_TIME) {
-        connected++;
-      } else {
-        notConnected++;
-      }
-    });
-
-    const total = allContacts.length;
-    const connectedPercentage = ((connected / total) * 100).toFixed(2);
-    const notConnectedPercentage = ((notConnected / total) * 100).toFixed(2);
-
-    if (total === 0) {
-      return {
-        totalContacts: 0,
-        connected: 0,
-        notConnected: 0,
-        connectedPercentage: "0%",
-        notConnectedPercentage: "0%",
-      };
-    }
-
-    await ContactStatModel.create({
-      system_id: id,
-      totalContacts: total,
-      connected: connected,
-      notConnected: notConnected,
-      connectedPercentage: `${connectedPercentage}%`,
-      notConnectedPercentage: `${notConnectedPercentage}%`,
-    });
-
-    return {
-      totalContacts: total,
-      connected,
-      notConnected,
-      connectedPercentage: `${connectedPercentage}%`,
-      notConnectedPercentage: `${notConnectedPercentage}%`,
-    };
-  } catch (error) {
-    console.error(error);
-    return { error: "Server error" };
-  }
-}
-
 async function getDealsWorkStats(id) {
   try {
     if (!id) {
@@ -144,15 +66,17 @@ async function getDealsWorkStats(id) {
     let start = 0;
     let allDeals = [];
 
+    // Bugungi sanani ISO formatda olish
+    const today = new Date().toISOString().split("T")[0];
+
     do {
       const response = await axios.post(
         `${url}/batch.json`,
         {
           cmd: {
-            getDeals: `crm.deal.list?filter[ASSIGNED_BY_ID]=${id}&select[]=ID&select[]=TITLE&select[]=CURRENCY_ID&select[]=OPPORTUNITY&select[]=DATE_CREATE&start=${start}`,
+            getDeals: `crm.deal.list?filter[ASSIGNED_BY_ID]=${id}&filter[>=DATE_CREATE]=${today}T00:00:00&filter[<=DATE_CREATE]=${today}T23:59:59&select[]=ID&select[]=TITLE&select[]=CURRENCY_ID&select[]=OPPORTUNITY&select[]=DATE_CREATE&start=${start}`,
           },
         },
-
         {
           headers: {
             "Content-Type": "application/json",
@@ -167,7 +91,7 @@ async function getDealsWorkStats(id) {
 
     let totalSales = 0;
     allDeals.forEach((deal) => {
-      totalSales += parseFloat(deal.OPPORTUNITY || 0); // `OPPORTUNITY` qiymatini qo'shish
+      totalSales += parseFloat(deal.OPPORTUNITY || 0);
     });
 
     const tenMillion = 10000000;
@@ -191,13 +115,108 @@ async function getDealsWorkStats(id) {
 
     return {
       totalDeals: allDeals.length,
-      totalSales: `${totalSales.toLocaleString("uz-UZ")} UZS`, // Jami sotuv summasi
-      percentage: `${percentage}%`, // 10 mln so'mga nisbatan ulushi
+      totalSales: `${totalSales.toLocaleString("uz-UZ")} UZS`,
+      percentage: `${percentage}%`,
       status: 200,
     };
   } catch (error) {
     console.error(error);
     return { error: "Serverda xatolik yuz berdi" };
+  }
+}
+
+async function getUserTaskStats(userId, tasks) {
+  try {
+    if (!userId || !tasks || !Array.isArray(tasks)) {
+      return { message: "Bad request", status: 400 };
+    }
+
+    const today = new Date();
+    const todayString = today.toISOString().split("T")[0]; // "YYYY-MM-DD"
+
+    // Bugungi vazifani aniqlash
+    const todayTask = tasks.find(
+      (task) => new Date(task.date).toISOString().split("T")[0] === todayString
+    );
+
+    if (!todayTask) {
+      return { message: "No tasks found for today", status: 404 };
+    }
+
+    const taskCount = todayTask.task; // Bugungi vazifa soni
+
+    const url = `${process.env.BITRIX_API_URL}/rest/${process.env.BITRIX_ID}/${process.env.BITRIX_TOKEN}`;
+    let start = 0;
+    let allContacts = [];
+
+    // Bitrix API orqali bugungi kontaktlarni olish
+    do {
+      const response = await axios.post(
+        `${url}/batch.json`,
+        {
+          cmd: {
+            getContacts: `crm.contact.list?filter[ASSIGNED_BY_ID]=${userId}&filter[>=LAST_ACTIVITY_TIME]=${todayString}&select[]=ID&select[]=ASSIGNED_BY_ID&select[]=LAST_ACTIVITY_TIME&select[]=DATE_CREATE&start=${start}`,
+          },
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      const currentContacts = response.data.result.result.getContacts || [];
+      allContacts = [...allContacts, ...currentContacts];
+      start = response.data.result.result_next.getContacts || null;
+    } while (start !== null);
+
+    // Bajarilgan va bajarilmagan kontaktlar sonini hisoblash
+    let connected = 0;
+
+    allContacts.forEach((contact) => {
+      // Bajarilgan kontakt: DATE_CREATE va LAST_ACTIVITY_TIME farqli bo‘lsa
+      if (contact.DATE_CREATE !== contact.LAST_ACTIVITY_TIME) {
+        connected++;
+      }
+    });
+
+    const notConnected = taskCount - connected > 0 ? taskCount - connected : 0;
+
+    // Foizlarni hisoblash
+    const connectedPercentage = ((connected / taskCount) * 100).toFixed(2);
+    const notConnectedPercentage = ((notConnected / taskCount) * 100).toFixed(
+      2
+    );
+
+    if (taskCount === 0) {
+      return {
+        totalContacts: 0,
+        connected: 0,
+        notConnected: 0,
+        connectedPercentage: `0%`,
+        notConnectedPercentage: `0%`,
+      };
+    }
+
+    await ContactStatModel.create({
+      system_id: userId,
+      totalContacts: taskCount,
+      connected: connected,
+      notConnected: notConnected,
+      connectedPercentage: `${connectedPercentage}%`,
+      notConnectedPercentage: `${notConnectedPercentage}%`,
+    });
+
+    return {
+      totalContacts: taskCount,
+      connected,
+      notConnected,
+      connectedPercentage: `${connectedPercentage}%`,
+      notConnectedPercentage: `${notConnectedPercentage}%`,
+    };
+  } catch (error) {
+    console.error(error);
+    return { message: "Server error", status: 500 };
   }
 }
 
@@ -223,16 +242,16 @@ cron.schedule("20 7,12,18 * * *", async () => {
 
     // Har bir foydalanuvchi uchun funksiyani chaqirish
     for (const user of users) {
-      const { system_id } = user;
+      const { system_id, task } = user;
       console.log(`Statistika to'planyapti: User ID - ${system_id}`);
-      await getContactsWorkStats(system_id);
+      await getUserTaskStats(system_id, task);
     }
 
     console.log("Statistikani yangilash jarayoni tugadi.");
   } catch (error) {
     console.error("Statistikani yangilashda xatolik yuz berdi:", error);
   }
-});
+}); //kontaktlar statistikasi
 
 cron.schedule("20 7,11,18 * * *", async () => {
   console.log(
@@ -264,7 +283,7 @@ cron.schedule("20 7,11,18 * * *", async () => {
       error
     );
   }
-});
+}); //sotuvlar statistikasi
 
 export default {
   async getData(req, res) {
@@ -342,6 +361,119 @@ export default {
         error: error.message,
         status: 500,
       });
+    }
+  },
+
+  async getUserTaskStatsForRange(req, res) {
+    try {
+      const { startDate, endDate } = req.body; // Vaqt oraligi
+      const { userId } = req.params; // Foydalanuvchi ID si
+
+      // Ma'lumotlarni tekshirish
+      if (!userId || !startDate || !endDate) {
+        return res
+          .status(400)
+          .json({ message: "Malumotlarni to'liq yobrmadingiz" });
+      }
+
+      // Foydalanuvchini topish
+      const user = await Users.findOne({
+        where: { system_id: userId },
+        attributes: ["id", "task"], // Faqat kerakli ma'lumotlarni olamiz
+      });
+
+      if (!user || !user.task) {
+        return res
+          .status(404)
+          .json({ message: "Hodim yoki vazifalar topilmadi" });
+      }
+
+      const tasks = user.task; // Foydalanuvchining `tasks` maydoni
+
+      // Vaqt oralig'ida belgilangan vazifalarni filtr qilish
+      const filteredTasks = tasks.filter(
+        (task) =>
+          new Date(task.date) >= new Date(startDate) &&
+          new Date(task.date) <= new Date(endDate)
+      );
+
+      // Umumiy vazifa soni
+      const totalTasks = filteredTasks.reduce(
+        (sum, task) => sum + task.task,
+        0
+      );
+
+      const todayString = new Date().toISOString().split("T")[0];
+      const url = `${process.env.BITRIX_API_URL}/rest/${process.env.BITRIX_ID}/${process.env.BITRIX_TOKEN}`;
+      let start = 0;
+      let allContacts = [];
+
+      // Bitrix API orqali kontaktlarni olish
+      do {
+        const response = await axios.post(
+          `${url}/batch.json`,
+          {
+            cmd: {
+              getContacts: `crm.contact.list?filter[ASSIGNED_BY_ID]=${userId}&filter[>=LAST_ACTIVITY_TIME]=${startDate}&filter[<=LAST_ACTIVITY_TIME]=${endDate}&select[]=ID&select[]=ASSIGNED_BY_ID&select[]=LAST_ACTIVITY_TIME&select[]=DATE_CREATE&start=${start}`,
+            },
+          },
+          {
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        const currentContacts = response.data.result.result.getContacts || [];
+        allContacts = [...allContacts, ...currentContacts];
+        start = response.data.result.result_next.getContacts || null;
+      } while (start !== null);
+
+      // Bajarilgan vazifalarni hisoblash
+      let completedTasks = 0;
+
+      allContacts.forEach((contact) => {
+        if (contact.DATE_CREATE !== contact.LAST_ACTIVITY_TIME) {
+          completedTasks++;
+        }
+      });
+
+      const pendingTasks =
+        totalTasks - completedTasks > 0 ? totalTasks - completedTasks : 0;
+
+      // Statistikani qaytarish
+      return res.json({
+        totalTasks,
+        completedTasks,
+        pendingTasks,
+        completedPercentage:
+          ((completedTasks / totalTasks) * 100).toFixed(2) + "%",
+        pendingPercentage: ((pendingTasks / totalTasks) * 100).toFixed(2) + "%",
+      });
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  },
+
+  async getAllStatistics(req, res) {
+    try {
+      let { id } = req.params;
+
+      let statisticsData = await ContactStatModel.findAll({
+        where: { system_id: id },
+        order: [["createdAt", "DESC"]],
+      });
+
+      if (!statisticsData.length) {
+        return res
+          .status(404)
+          .json({ message: "statistikalar topilmadi", status: 404 });
+      }
+
+      res.status(200).json({ statisticsData, status: 200 });
+    } catch (error) {
+      console.log(error);
     }
   },
 };

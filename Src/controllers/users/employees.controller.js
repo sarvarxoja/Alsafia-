@@ -1,6 +1,6 @@
 import ExcelJS from "exceljs";
 import { Op } from "sequelize";
-import { Users } from "../../models/realations.js";
+import { Products, Users } from "../../models/realations.js";
 
 export default {
   async create(req, res) {
@@ -35,7 +35,7 @@ export default {
         status: 201,
       });
     } catch (error) {
-      console.log(error)
+      console.log(error);
       res.status(500).json({
         message: "Internal server error",
         error: error.message,
@@ -53,7 +53,7 @@ export default {
       const { count, rows } = await Users.findAndCountAll({
         limit,
         offset,
-        order: [["createdAt", "DESC"]],
+        order: [["lastLogin", "DESC"]],
       });
 
       const totalPages = Math.ceil(count / limit);
@@ -242,6 +242,67 @@ export default {
 
       return res.json(users);
     } catch (error) {
+      res.status(500).json({
+        message: "Internal server error",
+        error: error.message,
+        status: 500,
+      });
+    }
+  },
+
+  async assignment(req, res) {
+    try {
+      let { id } = req.params;
+      let { task, date } = req.body;
+
+      if (!task || !date) {
+        return res.status(400).json({
+          message: "Malumotlarni to'lliq yuboring",
+          status: 400,
+        });
+      }
+
+      let employee = await Users.findOne({ where: { id: id } });
+
+      if (!employee) {
+        return res
+          .status(404)
+          .json({ message: "Bu foydalanuvchi topilmadi", status: 404 });
+      }
+
+      let existsTask = false;
+      if (employee.task !== null && employee.task.length !== 0) {
+        existsTask = employee.task.find(
+          (task) => task.date.split("T")[0] === date.split("T")[0]
+        );
+      }
+
+      if (existsTask) {
+        return res.status(400).json({
+          message: "Bu kun uchun vazifa berilgan",
+          status: 400,
+        });
+      }
+
+      let updatedTask = [...(employee.task || [])];
+      updatedTask.push({
+        task: Number(task),
+        adminId: req.admin.id,
+        date: new Date(date),
+      });
+
+      await employee.update(
+        {
+          task: updatedTask,
+        },
+        {
+          fields: ["task"],
+        }
+      );
+
+      res.status(200).json({ employee, status: 200 });
+    } catch (error) {
+      console.log(error);
       res.status(500).json({
         message: "Internal server error",
         error: error.message,

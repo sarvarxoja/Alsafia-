@@ -50,6 +50,11 @@ Users.init(
       },
     },
 
+    task: {
+      type: DataTypes.JSONB,
+      defaultValue: [],
+    },
+
     dateOfBirth: {
       type: DataTypes.STRING,
       defaultValue: null,

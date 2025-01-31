@@ -364,11 +364,10 @@ export default {
             .json({ message: "Amount noto'g'ri formatda!" });
         }
         product.totalAmount =
-          parseFloat(product.totalAmount || 0) + parsedAmount; // To'g'ri raqamga o'zgartirish
+          parseFloat(product.totalAmount || 0) + parsedAmount;
         product.remainingAmount =
           parseFloat(product.remainingAmount || 0) + parsedAmount;
 
-        // Yangi actionni qo'shish
         updatedActions.push({
           action: "update amount or name",
           adminId: req.admin.id,

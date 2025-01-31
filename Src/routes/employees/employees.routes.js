@@ -223,4 +223,10 @@ employee_routes
    *       500:
    *         description: "Internal server error"
    */
-  .get("/data/search", checkToken.checkHrToken, employeesController.search);
+  .get("/data/search", checkToken.checkHrToken, employeesController.search)
+  .patch(
+    "/assignment/:id",
+    checkToken.checkAdminToken,
+    idMiddleware.checkId,
+    employeesController.assignment
+  )

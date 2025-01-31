@@ -31,22 +31,11 @@ async function starter() {
 
     app.use(
       cors({
-        origin: "http://localhost:5173",
+        origin: "inchain.uz",
         credentials: true,
       })
     );
     app.use(cookieParser());
-    app.use(
-      session({
-        secret: process.env.SESSION_SECRET,
-        resave: false,
-        saveUninitialized: false,
-        cookie: {
-          secure: false, // Agar HTTPS ishlatayotgan bo'lsangiz, true qiling
-          httpOnly: true,
-        },
-      })
-    );
     app.use(express.json());
     app.use(express.urlencoded({ extended: true }));
 
