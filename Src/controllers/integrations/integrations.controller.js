@@ -220,11 +220,11 @@ async function getUserTaskStats(userId, tasks) {
   }
 }
 
-cron.schedule("58 7 * * *", copyData);
-cron.schedule("58 12 * * *", copyData);
-cron.schedule("58 17 * * *", copyData);
+cron.schedule("20 7 * * *", copyData);
+cron.schedule("20 12 * * *", copyData);
+cron.schedule("20 17 * * *", copyData);
 
-cron.schedule("20 7,12,18 * * *", async () => {
+cron.schedule("58 7,12,18 * * *", async () => {
   console.log(
     "Statistikani yangilash jarayoni boshlandi:",
     new Date().toLocaleTimeString()
@@ -253,7 +253,7 @@ cron.schedule("20 7,12,18 * * *", async () => {
   }
 }); //kontaktlar statistikasi
 
-cron.schedule("20 7,11,18 * * *", async () => {
+cron.schedule("58 7,12,18 * * *", async () => {
   console.log(
     "Sotuvlar statistikasi yangilash boshlandi:",
     new Date().toLocaleTimeString()
