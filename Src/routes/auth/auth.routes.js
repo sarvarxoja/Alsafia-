@@ -102,8 +102,7 @@ auth_router
    *         description: Too many requests
    */
 
-  // limiter
-  .post("/login", authMiddleware.checkLogin, authController.login)
+  .post("/login", authMiddleware.checkLogin, limiter,authController.login)
   /**
    * @swagger
    * /auth/logout:

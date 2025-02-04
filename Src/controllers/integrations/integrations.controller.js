@@ -62,37 +62,46 @@ async function getDealsWorkStats(id) {
     }
 
     const url = `${process.env.BITRIX_API_URL}/rest/${process.env.BITRIX_ID}/${process.env.BITRIX_TOKEN}`;
-
     let start = 0;
     let allDeals = [];
 
-    // Bugungi sanani ISO formatda olish
-    const today = new Date().toISOString().split("T")[0];
+    // Bugungi sana
+    // const today = new Date().toISOString().split("T")[0];
+    const a = new Date();
+    const january30 = new Date(a.getFullYear(), 0, 30); // 0 - yanvar, 30 - kun
+    const today = january30.toISOString().split("T")[0];
+
+    console.log(today); // Kechagi kun, masalan: "2025-02-03"
 
     do {
       const response = await axios.post(
-        `${url}/batch.json`,
+        `${url}/crm.deal.list.json`,
         {
-          cmd: {
-            getDeals: `crm.deal.list?filter[ASSIGNED_BY_ID]=${id}&filter[>=DATE_CREATE]=${today}T00:00:00&filter[<=DATE_CREATE]=${today}T23:59:59&select[]=ID&select[]=TITLE&select[]=CURRENCY_ID&select[]=OPPORTUNITY&select[]=DATE_CREATE&start=${start}`,
+          filter: {
+            ASSIGNED_BY_ID: id,
+            ">=DATE_CREATE": today, // Bugungi kundan boshlab
+            "<=DATE_CREATE": today, // Bugungi kunni o‘zini olish
           },
+          select: ["ID", "TITLE", "CURRENCY_ID", "OPPORTUNITY", "DATE_CREATE"],
+          start: start,
         },
         {
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
         }
       );
 
-      const currentDeals = response.data.result.result.getDeals;
+      const currentDeals = response.data.result;
+      if (!currentDeals || currentDeals.length === 0) break;
+
       allDeals = [...allDeals, ...currentDeals];
-      start = response.data.result.result_next.getDeals || null;
+      start = response.data.next ? response.data.next : null;
     } while (start !== null);
 
-    let totalSales = 0;
-    allDeals.forEach((deal) => {
-      totalSales += parseFloat(deal.OPPORTUNITY || 0);
-    });
+    // Jami savdo hisoblash
+    let totalSales = allDeals.reduce(
+      (sum, deal) => sum + parseFloat(deal.OPPORTUNITY || 0),
+      0
+    );
 
     const tenMillion = 10000000;
     const percentage = ((totalSales / tenMillion) * 100).toFixed(2);
@@ -106,6 +115,7 @@ async function getDealsWorkStats(id) {
       };
     }
 
+    // Ma'lumotlarni bazaga saqlash
     await DealsStatModel.create({
       system_id: id,
       totalDeals: allDeals.length,

@@ -95,7 +95,7 @@ product_routes
    *       500:
    *         description: Internal server error
    */
-  .get("/all",  checkToken.checkPmToken, productsController.find)
+  .get("/all", productsController.find)
   /**
    * @swagger
    * /products/sell/{id}:
