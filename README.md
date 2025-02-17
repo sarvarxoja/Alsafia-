@@ -1,4 +1,5 @@
-.env
+/.env 
+
 PORT=
 DB=postgres:
 SECRET_KEY=
